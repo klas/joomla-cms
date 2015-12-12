@@ -220,4 +220,187 @@ class JTableAsset extends JTableNested
 		// Return the right value of this node + 1.
 		return $rightId + 1;
 	}
+
+	/**
+	 * Overloaded load function.
+	 *
+	 * */
+
+	public function load($keys = null, $reset = true)
+	{
+		$ret = parent::load($keys, $reset);
+
+		if ($ret !== false && is_string($this->rules))
+		{
+			$this->rules = json_decode($this->rules, true);
+		}
+
+		return $ret;
+	}
+
+	/**
+	 * Method to bind an associative array or object to the JTable instance.This
+	 * method only binds properties that are publicly accessible and optionally
+	 * takes an array of properties to ignore when binding.
+	 *
+	 * @param   mixed  $src     An associative array or object to bind to the JTable instance.
+	 * @param   mixed  $ignore  An optional array or space separated list of properties to ignore while binding.
+	 *
+	 * @return  boolean  True on success.
+	 *
+	 * @since   11.1
+	 * @throws  InvalidArgumentException
+	 */
+	public function bind($array, $ignore = '')
+	{
+		$query = $this->_db->getQuery(true);
+		$query->select('*');
+		$query->from('#__permissions');
+		$query->where('`assetid` = ' . (int) $array['id']);
+		$query->order('permission');
+		$this->_db->setQuery($query);
+
+		$DBrules = $this->_db->loadObjectList();
+
+		$rules = array();
+
+		foreach ($DBrules AS $DBrule)
+		{
+			if (!isset($rules[$DBrule->permission]))
+			{
+				$rules[$DBrule->permission] = array();
+			}
+
+			$rules[$DBrule->permission][] = array($DBrule->group => $DBrule->value);
+		}
+
+		if (isset($rules) && is_array($rules) && !empty($rules))
+		{
+			$array['rules'] = $rules;
+		}
+
+		if (empty($array['rules']))
+		{
+			$array['rules'] = array();
+		}
+
+		if (is_string($array['rules']))
+		{
+			$array['rules'] = json_decode($array['rules'], true);
+		}
+
+		return parent::bind($array, $ignore);
+	}
+
+	/**
+	 * Method to store a node in the database table.
+	 *
+	 * @param   boolean  $updateNulls  True to update null values as well.
+	 *
+	 * @return  boolean  True on success.
+	 *
+	 * @link    https://docs.joomla.org/JTableNested/store
+	 * @since   11.1
+	 */
+	public function store($updateNulls = false)
+	{
+		$rules       = $this->rules;
+		$this->rules = '{}';
+
+		$return = parent::store($updateNulls);
+
+		// Reset groups to the local object.
+		$this->rules = $rules;
+		unset($rules);
+
+		if (is_string($this->rules))
+		{
+			$this->rules = json_decode($this->rules, true);
+		}
+
+		$k = $this->_tbl_key;
+
+		if (empty($this->$k))
+		{
+			// Get the last id created by parent::store
+			$query = $this->_db->getQuery(true);
+			$query->select('id');
+			$query->from($this->_tbl);
+			$query->where('name = ' . $this->_db->quote($this->name));
+			$this->_db->setQuery($query);
+			$assetID = $this->_db->loadResult();
+
+			// Check for a database error.
+			if ($this->_db->getErrorNum())
+			{
+				$e = new JException(JText::sprintf('JLIB_DATABASE_ERROR_STORE_FAILED', get_class($this), $this->_db->getErrorMsg()));
+				$this->setError($e);
+				$this->_unlock();
+
+				return false;
+			}
+
+		}
+		else
+		{
+			$assetID = $this->$k;
+		}
+
+		// Store the rules data if parent data was saved.
+		if ($return)
+		{
+			if (!is_array($this->rules) || count($this->rules) == 0)
+			{
+				// we have nothing to store, we are not storing empty values
+				return true;
+			}
+
+			// Delete the old permissions.
+			$query = $this->_db->getQuery(true);
+
+			$query->delete('#__permissions');
+			$query->where('assetid = ' . (int) $assetID);
+			$this->_db->setQuery($query);
+			$this->_db->Query();
+
+			// Insert new permissions
+			foreach ($this->rules AS $per_name => $groups)
+			{
+
+				if (!empty($groups))
+				{
+
+					foreach ($groups AS $per_group => $value)
+					{
+
+						$query->clear();
+						$query->insert('#__permissions');
+						$query->set('`permission` = ' . $this->_db->quote($per_name));
+						$query->set('`value` = ' . $this->_db->quote($value));
+						$query->set('`group` = ' . $per_group);
+						$query->set('`assetid` = ' . (int) $this->id);
+						$this->_db->setQuery($query);
+						$this->_db->Query();
+
+					}
+				}
+			}
+
+			// Check for a database error.
+			if ($this->_db->getErrorNum())
+			{
+				$this->setError($this->_db->getErrorMsg());
+
+				return false;
+			}
+		}
+		else
+		{
+			$this->setError(JText::sprintf('JLIB_DATABASE_ERROR_STORE_FAILED'));
+
+			return false;
+		}
+
+		return true;
+	}
 }
