@@ -271,7 +271,7 @@ class JTableAsset extends JTableNested
 				$rules[$DBrule->permission] = array();
 			}
 
-			$rules[$DBrule->permission][] = array($DBrule->group => $DBrule->value);
+			$rules[$DBrule->permission][$DBrule->group] =  $DBrule->value;
 		}
 
 		if (isset($rules) && is_array($rules) && !empty($rules))
