@@ -224,8 +224,17 @@ class JAccess
 
 
 	/***
-	 *  Speed enhanced permission lookup function
-	 *  @return rules object
+	 * Speed enhanced permission lookup function
+	 * Returns JAccessRules object for an asset.  The returned object can optionally hold
+	 * only the rules explicitly set for the asset or the summation of all inherited rules from
+	 * parent assets and explicit rules.
+	 *
+	 * @param   mixed    $asset      Integer asset id or the name of the asset as a string.
+	 * @param   boolean  $recursive  True to return the rules object with inherited rules.
+	 * @param   array    $groups     Array of group ids to get permissions for
+	 * @param   string   $action     Action name to limit results
+	 *
+	 * @return  JAccessRules   JAccessRules object for the asset.
 	 */
 
 	public static function getPermissions($asset = 1, $recursive = false, $groups = null, $action = null)
