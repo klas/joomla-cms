@@ -215,6 +215,7 @@ class JAccess
 	 * @return  JAccessRules   JAccessRules object for the asset.
 	 *
 	 * @since   11.1
+	 * @deprecated  Use getPermissions instead
 	 */
 	public static function getAssetRules($asset, $recursive = false)
 	{
