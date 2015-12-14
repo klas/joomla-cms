@@ -229,26 +229,30 @@ class JAccess
 
 	public static function getPermissions($asset = 1, $recursive = false, $groups = null, $action = null)
 	{
-		$action = null;
 
-		if ($action == 'core.view') { // we are optimizing only view for frontend, otherwise 1 query for all actions
-			if (isset(self::$permCache[md5(serialize(array($asset, $recursive, $groups, null)))])) { // do we have all actions query already?
+		if ($action == 'core.view')
+		{ // we are optimizing only view for frontend, otherwise 1 query for all actions
+			if (isset(self::$permCache[md5(serialize(array($asset, $recursive, $groups, null)))]))
+			{ // do we have all actions query already?
 				$action = null;
 			}
-		} else {
+		}
+		else
+		{
 			$action = null;  // don't use action in cacheid calc and query - faster with mutiple actions
 		}
 
 		$cacheid = md5(serialize(array($asset, $recursive, $groups, $action)));
 
-		if (!isset(self::$permCache[$cacheid])) {
+		if (!isset(self::$permCache[$cacheid]))
+		{
 
 
 			// Get the database connection object.
 			$db = JFactory::getDbo();
 
 			// Build the database query to get the rules for the asset.
-			$query	= $db->getQuery(true);
+			$query = $db->getQuery(true);
 			//$query->select($recursive ? 'b.rules' : 'a.rules');
 			//$query->select($recursive ? 'a.id, a.parent_id, a.name, a.level, a.title, a.lft, a.rgt, a.rules, b.id, b.rules, p.permission, p.value, p.group' : 'a.id, a.name, a.parent_id, a.lft, a.rtg, a.rules, p.permission, p.value, p.group');
 			$query->select($recursive ? 'b.id, b.rules, p.permission, p.value, p.group' : 'a.id, a.rules, p.permission, p.value, p.group');
@@ -256,109 +260,131 @@ class JAccess
 			//$query->group($recursive ? 'b.id' : 'a.id');
 
 			// If we want the rules cascading up to the global asset node we need a self-join.
-			if ($recursive) {
+			if ($recursive)
+			{
 				/*$query->leftJoin('#__assets AS b ON b.lft <= a.lft AND b.rgt >= a.rgt');*/
 				$query->from('#__assets AS b');
 				$query->where('a.lft BETWEEN b.lft AND b.rgt');
 				$query->order('b.lft');
 			}
 
-			if ($recursive) {
+			if ($recursive)
+			{
 				$conditions = 'ON b.id = p.assetid ';
-			} else {
+			}
+			else
+			{
 				$conditions = 'ON a.id = p.assetid ';
 			}
 
-			if (isset($groups) && $groups != array()) {
-				if (is_string($groups)) {
+			if (isset($groups) && $groups != array())
+			{
+				if (is_string($groups))
+				{
 					$groups = array($groups);
 				}
-				$counter = 1;
+				$counter   = 1;
 				$allgroups = count($groups);
 
 				$gquery = ' AND (';
 
-				foreach ($groups AS $group) {
-					$gquery .= 'p.group = '. $db->quote((string)$group) ;
-					$gquery .= ($counter < $allgroups) ?  ' OR ' :  ' ) ';
-					$counter ++;
+				foreach ($groups AS $group)
+				{
+					$gquery .= 'p.group = ' . $db->quote((string) $group);
+					$gquery .= ($counter < $allgroups) ? ' OR ' : ' ) ';
+					$counter++;
 				}
 
 				$conditions .= $gquery;
 			}
 
-			if (isset($action)) {
+			if (isset($action))
+			{
 				// Get the root even if the asset is not found
-				$conditions .= ' AND p.permission = ' . $db->quote((string)$action) .' ';
+				$conditions .= ' AND p.permission = ' . $db->quote((string) $action) . ' ';
 			}
 
-			$query->leftJoin('#__permissions AS p '. $conditions);
+			$query->leftJoin('#__permissions AS p ' . $conditions);
 
 			// If the asset identifier is numeric assume it is a primary key, else lookup by name.
-			if (is_numeric($asset)) {
+			if (is_numeric($asset))
+			{
 				// Get the root even if the asset is not found
 				//$query->where('(a.id = '.(int) $asset.($recursive ? ' OR a.parent_id=0':'').')');
-				$query->where('a.id = '.(int) $asset);
+				$query->where('a.id = ' . (int) $asset);
 			}
-			else {
+			else
+			{
 				// Get the root even if the asset is not found
 				//$query->where('(a.name = '.$db->quote($asset).($recursive ? ' OR a.parent_id=0':'').')');
-				$query->where('a.name = '.$db->quote($asset));
+				$query->where('a.name = ' . $db->quote($asset));
 			}
 
 			// Execute the query and load the rules from the result.
 			$db->setQuery($query);
-			$result	= $db->loadObjectList();
+			$result = $db->loadObjectList();
 
 			// get all permisions for root node so we do it only once¨!
-			if ($recursive && empty($result)) {
-				if(!isset(self::$rootAsset)) {
-					$query	= $db->getQuery(true);
+			if ($recursive && empty($result))
+			{
+				if (!isset(self::$rootAsset))
+				{
+					$query = $db->getQuery(true);
 					$query->select('b.id, b.rules, p.permission, p.value, p.group');
 					$query->from('#__assets AS b');
 					$query->leftJoin('#__permissions AS p ON b.id = p.assetid');
 					$query->where('b.parent_id=0');
 					$db->setQuery($query);
-					$result	= $db->loadObjectList();
+					$result          = $db->loadObjectList();
 					self::$rootAsset = $result;
-				} else {
+				}
+				else
+				{
 					$result = self::$rootAsset;
 				}
 			}
 
 			$mergedResult = array();
 
-			foreach ($result AS $DBrule) {
+			foreach ($result AS $DBrule)
+			{
 
-				if (isset($DBrule->permission) && !empty($DBrule->permission)){
+				if (isset($DBrule->permission) && !empty($DBrule->permission))
+				{
 
 
-					if (!isset($mergedResult[$DBrule->id])) {
+					if (!isset($mergedResult[$DBrule->id]))
+					{
 						$mergedResult[$DBrule->id] = array();
 					}
-					if (!isset($mergedResult[$DBrule->id][$DBrule->permission])) {
+					if (!isset($mergedResult[$DBrule->id][$DBrule->permission]))
+					{
 						$mergedResult[$DBrule->id][$DBrule->permission] = array();
 					}
 
-					$mergedResult[$DBrule->id][$DBrule->permission][$DBrule->group] = (int)$DBrule->value;
+					$mergedResult[$DBrule->id][$DBrule->permission][$DBrule->group] = (int) $DBrule->value;
 
-				} else if(isset($DBrule->rules) && $DBrule->rules != '{}') {
-					$mergedResult[$DBrule->id] = json_decode((string)$DBrule->rules, true);
+				}
+				else if (isset($DBrule->rules) && $DBrule->rules != '{}')
+				{
+					$mergedResult[$DBrule->id] = json_decode((string) $DBrule->rules, true);
 				}
 			}
 
 			$mergedResult = array_values($mergedResult);
 
-			$querytest = $db->replacePrefix((string)$db->getQuery(false));
+			$querytest                 = $db->replacePrefix((string) $db->getQuery(false));
 			self::$permCache[$cacheid] = $mergedResult;
 
-		} else {
+		}
+		else
+		{
 			$mergedResult = self::$permCache[$cacheid];
 		}
 
 		$test = self::$permCache[$cacheid];
 		// Instantiate and return the MRules object for the asset rules.
-		$rules	= new JAccessRules;
+		$rules = new JAccessRules;
 		$rules->mergeCollection($mergedResult);
 
 		return $rules;
