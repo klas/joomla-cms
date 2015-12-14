@@ -239,20 +239,23 @@ class JAccess
 
 	public static function getPermissions($asset = 1, $recursive = false, $groups = null, $action = null)
 	{
+		$action_fc = $action;
 
+		// we are optimizing only view for frontend, otherwise 1 query for all actions is faster globaly due to cache
 		if ($action == 'core.view')
-		{ // we are optimizing only view for frontend, otherwise 1 query for all actions
+		{
+			// if we have all actions query already take data from cache
 			if (isset(self::$permCache[md5(serialize(array($asset, $recursive, $groups, null)))]))
-			{ // do we have all actions query already?
-				$action = null;
+			{
+				$action_fc = null;
 			}
 		}
 		else
 		{
-			$action = null;  // don't use action in cacheid calc and query - faster with mutiple actions
+			$action_fc = null;  // don't use action in cacheid calc and query - faster with mutiple actions
 		}
 
-		$cacheid = md5(serialize(array($asset, $recursive, $groups, $action)));
+		$cacheid = md5(serialize(array($asset, $recursive, $groups, $action_fc)));
 
 		if (!isset(self::$permCache[$cacheid]))
 		{
@@ -308,10 +311,10 @@ class JAccess
 				$conditions .= $gquery;
 			}
 
-			if (isset($action))
+			if (isset($action_fc))
 			{
 				// Get the root even if the asset is not found
-				$conditions .= ' AND p.permission = ' . $db->quote((string) $action) . ' ';
+				$conditions .= ' AND p.permission = ' . $db->quote((string) $action_fc) . ' ';
 			}
 
 			$query->leftJoin('#__permissions AS p ' . $conditions);
@@ -383,7 +386,7 @@ class JAccess
 
 			$mergedResult = array_values($mergedResult);
 
-			$querytest                 = $db->replacePrefix((string) $db->getQuery(false));
+			//$querytest                 = $db->replacePrefix((string) $db->getQuery(false));
 			self::$permCache[$cacheid] = $mergedResult;
 
 		}
@@ -392,10 +395,20 @@ class JAccess
 			$mergedResult = self::$permCache[$cacheid];
 		}
 
-		$test = self::$permCache[$cacheid];
 		// Instantiate and return the MRules object for the asset rules.
 		$rules = new JAccessRules;
 		$rules->mergeCollection($mergedResult);
+
+		// if action was set return only this actions result
+		if (isset($action))
+		{
+			if(isset($rules[$action]))
+			{
+				$tmprules = array();
+				$tmprules[$action] = $rules[$action];
+				$rules = $tmprules;
+			}
+		}
 
 		return $rules;
 	}
