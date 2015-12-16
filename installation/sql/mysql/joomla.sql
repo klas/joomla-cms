@@ -1975,6 +1975,11 @@ INSERT INTO `#__viewlevels` (`id`, `title`, `ordering`, `rules`) VALUES
 (5, 'Guest', 1, '[9]'),
 (6, 'Super Users', 4, '[8]');
 
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `#__permissions`
+--
 
 CREATE TABLE `#__permissions` (
   `id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY ,
@@ -1988,13 +1993,9 @@ CREATE TABLE `#__permissions` (
   UNIQUE KEY `uniq` ( `permission` , `group` , `assetid` )
 ) ENGINE = InnoDB COMMENT = 'Joomla permission table' DEFAULT CHARSET=utf8mb4 DEFAULT COLLATE=utf8mb4_general_ci;
 
-
--- To be moved to change sql later
-ALTER TABLE `#__menu` ADD `asset_id` INT( 10 ) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'FK to the #__assets table.';
-ALTER TABLE `#__extensions` ADD `asset_id` INT( 10 ) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'FK to the #__assets table.';
-ALTER TABLE `#__contact_details` ADD INDEX `idx_useri_id` ( `user_id` );
-ALTER TABLE `#__assets` ADD INDEX `idx_id_level` ( `level` , `id` );
-
+--
+-- Dumping data for table `#__viewlevels`
+--
 
 INSERT INTO `#__permissions` (`id`, `permission`, `value`, `group`, `assetid`) VALUES
   (1, 'core.login.site', 1, 6, 1),
@@ -2047,6 +2048,13 @@ INSERT INTO `#__permissions` (`id`, `permission`, `value`, `group`, `assetid`) V
   (48, 'core.admin', 1, 7, 24),
   (49, 'core.admin', 1, 7, 33),
   (50, 'core.manage', 1, 6, 33);
+
+
+-- To be moved to change sql later and merged with tables sql
+-- ALTER TABLE `#__menu` ADD `asset_id` INT( 10 ) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'FK to the #__assets table.';
+-- ALTER TABLE `#__extensions` ADD `asset_id` INT( 10 ) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'FK to the #__assets table.';
+ALTER TABLE `#__contact_details` ADD INDEX `idx_useri_id` ( `user_id` );
+ALTER TABLE `#__assets` ADD INDEX `idx_id_level` ( `level` , `id` );
 
 -- TESTING ONLY
 UPDATE `#__assets` SET `rules`='{}';
