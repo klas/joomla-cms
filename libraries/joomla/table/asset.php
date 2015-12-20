@@ -222,9 +222,21 @@ class JTableAsset extends JTableNested
 	}
 
 	/**
-	 * Overloaded load function.
+	 * Method to load a row from the database by primary key and bind the fields
+	 * to the JTable instance properties.
 	 *
-	 * */
+	 * @param   mixed    $keys   An optional primary key value to load the row by, or an array of fields to match.  If not
+	 *                           set the instance property value is used.
+	 * @param   boolean  $reset  True to reset the default values before loading the new row.
+	 *
+	 * @return  boolean  True if successful. False if row not found.
+	 *
+	 * @link    https://docs.joomla.org/JTable/load
+	 * @since   11.1
+	 * @throws  InvalidArgumentException
+	 * @throws  RuntimeException
+	 * @throws  UnexpectedValueException
+	 */
 
 	public function load($keys = null, $reset = true)
 	{
@@ -251,45 +263,45 @@ class JTableAsset extends JTableNested
 	 * @since   11.1
 	 * @throws  InvalidArgumentException
 	 */
-	public function bind($array, $ignore = '')
+	public function bind($src, $ignore = '')
 	{
 		$query = $this->_db->getQuery(true);
 		$query->select('*');
 		$query->from('#__permissions');
-		$query->where('`assetid` = ' . (int) $array['id']);
+		$query->where('`assetid` = ' . (int) $src['id']);
 		$query->order('permission');
 		$this->_db->setQuery($query);
 
-		$DBrules = $this->_db->loadObjectList();
+		$permissions = $this->_db->loadObjectList();
 
 		$rules = array();
 
-		foreach ($DBrules AS $DBrule)
+		foreach ($permissions AS $permission)
 		{
-			if (!isset($rules[$DBrule->permission]))
+			if (!isset($rules[$permission->permission]))
 			{
-				$rules[$DBrule->permission] = array();
+				$rules[$permission->permission] = array();
 			}
 
-			$rules[$DBrule->permission][$DBrule->group] =  $DBrule->value;
+			$rules[$permission->permission][$permission->group] = $permission->value;
 		}
 
 		if (isset($rules) && is_array($rules) && !empty($rules))
 		{
-			$array['rules'] = $rules;
+			$src['rules'] = $rules;
 		}
 
-		if (empty($array['rules']))
+		if (empty($src['rules']))
 		{
-			$array['rules'] = array();
+			$src['rules'] = array();
 		}
 
-		if (is_string($array['rules']))
+		if (is_string($src['rules']))
 		{
-			$array['rules'] = json_decode($array['rules'], true);
+			$src['rules'] = json_decode($src['rules'], true);
 		}
 
-		return parent::bind($array, $ignore);
+		return parent::bind($src, $ignore);
 	}
 
 	/**
@@ -328,7 +340,7 @@ class JTableAsset extends JTableNested
 			$query->from($this->_tbl);
 			$query->where('name = ' . $this->_db->quote($this->name));
 			$this->_db->setQuery($query);
-			$assetID = $this->_db->loadResult();
+			$assetId = $this->_db->loadResult();
 
 			// Check for a database error.
 			if ($this->_db->getErrorNum())
@@ -339,11 +351,10 @@ class JTableAsset extends JTableNested
 
 				return false;
 			}
-
 		}
 		else
 		{
-			$assetID = $this->$k;
+			$assetId = $this->$k;
 		}
 
 		// Store the rules data if parent data was saved.
@@ -351,7 +362,7 @@ class JTableAsset extends JTableNested
 		{
 			if (!is_array($this->rules) || count($this->rules) == 0)
 			{
-				// we have nothing to store, we are not storing empty values
+				// We have nothing to store, we are not storing empty values
 				return true;
 			}
 
@@ -359,28 +370,25 @@ class JTableAsset extends JTableNested
 			$query = $this->_db->getQuery(true);
 
 			$query->delete('#__permissions');
-			$query->where('assetid = ' . (int) $assetID);
+			$query->where('assetid = ' . (int) $assetId);
 			$this->_db->setQuery($query);
-			$this->_db->Query();
+			$this->_db->execute();
 
 			// Insert new permissions
-			foreach ($this->rules AS $per_name => $groups)
+			foreach ($this->rules AS $perName => $groups)
 			{
-
 				if (!empty($groups))
 				{
-
-					foreach ($groups AS $per_group => $value)
+					foreach ($groups AS $perGroup => $value)
 					{
-
 						$query->clear();
 						$query->insert('#__permissions');
-						$query->set('`permission` = ' . $this->_db->quote($per_name));
+						$query->set('`permission` = ' . $this->_db->quote($perName));
 						$query->set('`value` = ' . $this->_db->quote($value));
-						$query->set('`group` = ' . $per_group);
+						$query->set('`group` = ' . $perGroup);
 						$query->set('`assetid` = ' . (int) $this->id);
 						$this->_db->setQuery($query);
-						$this->_db->Query();
+						$this->_db->execute();
 
 					}
 				}
