@@ -34,30 +34,6 @@ class JAccess
 	 */
 	protected static $assetRules = array();
 
-	/**
-	 * Array of user groups.
-	 *
-	 * @var    array
-	 * @since  11.1
-	 */
-	protected static $userGroups = array();
-
-	/**
-	 * Array of user group paths.
-	 *
-	 * @var    array
-	 * @since  11.1
-	 */
-	protected static $userGroupPaths = array();
-
-	/**
-	 * Array of cached groups by user.
-	 *
-	 * @var    array
-	 * @since  11.1
-	 */
-	protected static $groupsByUser = array();
-
 	public static $permCache = array();
 
 	public static $rootAsset = null;
@@ -73,11 +49,11 @@ class JAccess
 	{
 		self::$viewLevels = array();
 		self::$assetRules = array();
-		self::$userGroups = array();
-		self::$userGroupPaths = array();
-		self::$groupsByUser = array();
 		self::$permCache = array();
 		self::$rootAsset = null;
+
+		// Legacy
+		JUserHelper::clearStatics();
 	}
 
 	/**
@@ -114,7 +90,7 @@ class JAccess
 		}
 
 		// Get all groups against which the user is mapped.
-		$identities = self::getGroupsByUser($userId);
+		$identities = JUserHelper::getGroupsByUser($userId);
 		array_unshift($identities, $userId * -1);
 
 		return self::$assetRules[$asset]->allow($action, $identities);
@@ -139,7 +115,7 @@ class JAccess
 		$asset = strtolower(preg_replace('#[\s\-]+#', '.', trim($asset)));
 
 		// Get group path for group
-		$groupPath = self::getGroupPath($groupId);
+		$groupPath = JUserHelper::getGroupPath($groupId);
 
 		// Default to the root asset node.
 		if (empty($asset))
@@ -156,53 +132,6 @@ class JAccess
 		}
 
 		return self::$assetRules[$asset]->allow($action, $groupPath);
-	}
-
-	/**
-	 * Gets the parent groups that a leaf group belongs to in its branch back to the root of the tree
-	 * (including the leaf group id).
-	 *
-	 * @param   mixed  $groupId  An integer or array of integers representing the identities to check.
-	 *
-	 * @return  mixed  True if allowed, false for an explicit deny, null for an implicit deny.
-	 *
-	 * @since   11.1
-	 */
-	protected static function getGroupPath($groupId)
-	{
-		// Preload all groups
-		if (empty(self::$userGroups))
-		{
-			$db = JFactory::getDbo();
-			$query = $db->getQuery(true)
-				->select('parent.id, parent.lft, parent.rgt')
-				->from('#__usergroups AS parent')
-				->order('parent.lft');
-			$db->setQuery($query);
-			self::$userGroups = $db->loadObjectList('id');
-		}
-
-		// Make sure groupId is valid
-		if (!array_key_exists($groupId, self::$userGroups))
-		{
-			return array();
-		}
-
-		// Get parent groups and leaf group
-		if (!isset(self::$userGroupPaths[$groupId]))
-		{
-			self::$userGroupPaths[$groupId] = array();
-
-			foreach (self::$userGroups as $group)
-			{
-				if ($group->lft <= self::$userGroups[$groupId]->lft && $group->rgt >= self::$userGroups[$groupId]->rgt)
-				{
-					self::$userGroupPaths[$groupId][] = $group->id;
-				}
-			}
-		}
-
-		return self::$userGroupPaths[$groupId];
 	}
 
 	/**
@@ -225,8 +154,6 @@ class JAccess
 		return $access->getRules($asset, $recursive);
 	}
 
-
-
 	/**
 	 * Speed enhanced permission lookup function
 	 * Returns JAccessRules object for an asset.  The returned object can optionally hold
@@ -240,7 +167,7 @@ class JAccess
 	 *
 	 * @return  JAccessRules   JAccessRules object for the asset.
 	 */
-	public function getRules($asset = 1, $recursive = false, $groups = null, $action = null)
+	public function getRules($asset = 1, $recursive = false, $groups = null, $action = null, JAccessRules $rules = null )
 	{
 		// Make a copy for later
 		$actionForCache = $action;
@@ -266,7 +193,7 @@ class JAccess
 		}
 
 		// Instantiate and return the JAccessRules object for the asset rules.
-		$rules = new JAccessRules;
+		$rules = isset($rules) ? $rules : new JAccessRules;
 		$rules->mergeCollection(self::$permCache[$cacheId]);
 
 		// If action was set return only this action's result
@@ -312,7 +239,6 @@ class JAccess
 		return $cacheId;
 	}
 
-
 	/**
 	 * Look for permissions based on asset id.
 	 *
@@ -347,7 +273,6 @@ class JAccess
 
 			$conditions = 'ON a.id = p.assetid ';
 		}
-
 
 		if (isset($groups) && $groups != array())
 		{
@@ -394,16 +319,15 @@ class JAccess
 		return $result;
 	}
 
-
 	public function getRootAssetPermissions()
 	{
 		$db = JFactory::getDbo();
 
 		$query = $db->getQuery(true);
-		$query->select('b.id, b.rules, p.permission, p.value, p.group');
-		$query->from('#__assets AS b');
-		$query->leftJoin('#__permissions AS p ON b.id = p.assetid');
-		$query->where('b.parent_id=0');
+		$query  ->select('b.id, b.rules, p.permission, p.value, p.group')
+				->from('#__assets AS b')
+				->leftJoin('#__permissions AS p ON b.id = p.assetid')
+				->where('b.parent_id=0');
 		$db->setQuery($query);
 
 		self::$rootAsset  = $db->loadObjectList();
@@ -411,7 +335,7 @@ class JAccess
 		return self::$rootAsset;
 	}
 
-	/*
+	/**
 	 * Merge new permissions with old rules from assets table for backwards compatibility
 	 */
 	private function mergePermissionsRules($results)
@@ -445,149 +369,6 @@ class JAccess
 		return $mergedResult;
 	}
 
-
-	/**
-	 * Method to return the title of a user group
-	 *
-	 * @param   integer  $groupId  Id of the group for which to get the title of.
-	 *
-	 * @return  string  Tthe title of the group
-	 *
-	 * @since   3.5
-	 */
-	public static function getGroupTitle($groupId)
-	{
-		// Fetch the group title from the database
-		$db    = JFactory::getDbo();
-		$query = $db->getQuery(true);
-		$query->select('title')
-			->from('#__usergroups')
-			->where('id = ' . $db->quote($groupId));
-		$db->setQuery($query);
-
-		return $db->loadResult();
-	}
-
-	/**
-	 * Method to return a list of user groups mapped to a user. The returned list can optionally hold
-	 * only the groups explicitly mapped to the user or all groups both explicitly mapped and inherited
-	 * by the user.
-	 *
-	 * @param   integer  $userId     Id of the user for which to get the list of groups.
-	 * @param   boolean  $recursive  True to include inherited user groups.
-	 *
-	 * @return  array    List of user group ids to which the user is mapped.
-	 *
-	 * @since   11.1
-	 */
-	public static function getGroupsByUser($userId, $recursive = true)
-	{
-		// Creates a simple unique string for each parameter combination:
-		$storeId = $userId . ':' . (int) $recursive;
-
-		if (!isset(self::$groupsByUser[$storeId]))
-		{
-			// TODO: Uncouple this from JComponentHelper and allow for a configuration setting or value injection.
-			if (class_exists('JComponentHelper'))
-			{
-				$guestUsergroup = JComponentHelper::getParams('com_users')->get('guest_usergroup', 1);
-			}
-			else
-			{
-				$guestUsergroup = 1;
-			}
-
-			// Guest user (if only the actually assigned group is requested)
-			if (empty($userId) && !$recursive)
-			{
-				$result = array($guestUsergroup);
-			}
-			// Registered user and guest if all groups are requested
-			else
-			{
-				$db = JFactory::getDbo();
-
-				// Build the database query to get the rules for the asset.
-				$query = $db->getQuery(true)
-					->select($recursive ? 'b.id' : 'a.id');
-
-				if (empty($userId))
-				{
-					$query->from('#__usergroups AS a')
-						->where('a.id = ' . (int) $guestUsergroup);
-				}
-				else
-				{
-					$query->from('#__user_usergroup_map AS map')
-						->where('map.user_id = ' . (int) $userId)
-						->join('LEFT', '#__usergroups AS a ON a.id = map.group_id');
-				}
-
-				// If we want the rules cascading up to the global asset node we need a self-join.
-				if ($recursive)
-				{
-					$query->join('LEFT', '#__usergroups AS b ON b.lft <= a.lft AND b.rgt >= a.rgt');
-				}
-
-				// Execute the query and load the rules from the result.
-				$db->setQuery($query);
-				$result = $db->loadColumn();
-
-				// Clean up any NULL or duplicate values, just in case
-				JArrayHelper::toInteger($result);
-
-				if (empty($result))
-				{
-					$result = array('1');
-				}
-				else
-				{
-					$result = array_unique($result);
-				}
-			}
-
-			self::$groupsByUser[$storeId] = $result;
-		}
-
-		return self::$groupsByUser[$storeId];
-	}
-
-	/**
-	 * Method to return a list of user Ids contained in a Group
-	 *
-	 * @param   integer  $groupId    The group Id
-	 * @param   boolean  $recursive  Recursively include all child groups (optional)
-	 *
-	 * @return  array
-	 *
-	 * @since   11.1
-	 * @todo    This method should move somewhere else
-	 */
-	public static function getUsersByGroup($groupId, $recursive = false)
-	{
-		// Get a database object.
-		$db = JFactory::getDbo();
-
-		$test = $recursive ? '>=' : '=';
-
-		// First find the users contained in the group
-		$query = $db->getQuery(true)
-			->select('DISTINCT(user_id)')
-			->from('#__usergroups as ug1')
-			->join('INNER', '#__usergroups AS ug2 ON ug2.lft' . $test . 'ug1.lft AND ug1.rgt' . $test . 'ug2.rgt')
-			->join('INNER', '#__user_usergroup_map AS m ON ug2.id=m.group_id')
-			->where('ug1.id=' . $db->quote($groupId));
-
-		$db->setQuery($query);
-
-		$result = $db->loadColumn();
-
-		// Clean up any NULL values, just in case
-		JArrayHelper::toInteger($result);
-
-		return $result;
-	}
-
 	/**
 	 * Method to return a list of view levels for which the user is authorised.
 	 *
@@ -600,7 +381,7 @@ class JAccess
 	public static function getAuthorisedViewLevels($userId)
 	{
 		// Get all groups that the user is mapped to recursively.
-		$groups = self::getGroupsByUser($userId);
+		$groups = JUserHelper::getGroupsByUser($userId);
 
 		// Only load the view levels once.
 		if (empty(self::$viewLevels))
@@ -764,5 +545,70 @@ class JAccess
 
 		// Finally return the actions array
 		return $actions;
+	}
+
+	/**
+	 * Method to return the title of a user group
+	 *
+	 * @param   integer  $groupId  Id of the group for which to get the title of.
+	 *
+	 * @return  string  The title of the group
+	 *
+	 * @since   3.5
+	 * @deprecated  Use JUserHelper::getGroupTitle instead
+	 */
+	public static function getGroupTitle($groupId)
+	{
+		return JUserHelper::getGroupTitle($groupId);
+	}
+
+	/**
+	 * Method to return a list of user groups mapped to a user. The returned list can optionally hold
+	 * only the groups explicitly mapped to the user or all groups both explicitly mapped and inherited
+	 * by the user.
+	 *
+	 * @param   integer  $userId     Id of the user for which to get the list of groups.
+	 * @param   boolean  $recursive  True to include inherited user groups.
+	 *
+	 * @return  array    List of user group ids to which the user is mapped.
+	 *
+	 * @since   11.1
+	 * @deprecated  Use JUserHelper::getGroupsByUser instead
+	 */
+	public static function getGroupsByUser($userId, $recursive = true)
+	{
+		return JUserHelper::getGroupsByUser($userId, $recursive);
+	}
+
+	/**
+	 * Method to return a list of user Ids contained in a Group
+	 *
+	 * @param   integer  $groupId    The group Id
+	 * @param   boolean  $recursive  Recursively include all child groups (optional)
+	 *
+	 * @return  array
+	 *
+	 * @since   11.1
+	 * @deprecated  Use JUserHelper::getUsersByGroup instead
+	 */
+	public static function getUsersByGroup($groupId, $recursive = false)
+	{
+		return JUserHelper::getUsersByGroup($groupId, $recursive);
+	}
+
+	/**
+	 * Gets the parent groups that a leaf group belongs to in its branch back to the root of the tree
+	 * (including the leaf group id).
+	 *
+	 * @param   mixed  $groupId  An integer or array of integers representing the identities to check.
+	 *
+	 * @return  mixed  True if allowed, false for an explicit deny, null for an implicit deny.
+	 *
+	 * @since   11.1
+	 * @deprecated  Use JUserHelper::getGroupPath instead
+	 */
+	protected static function getGroupPath($groupId)
+	{
+		return JUserHelper::getGroupPath($groupId);
 	}
 }
