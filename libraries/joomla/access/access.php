@@ -38,6 +38,77 @@ class JAccess
 
 	public static $rootAsset = null;
 
+	protected $assetId = 1;
+
+	protected $rules = null;
+
+	protected $db = null;
+
+	/**
+	 * Instantiate the access class
+	 *
+	 * @param   mixed         $assetId  Assets id, can be numeric or string
+	 * @param   JAccessRules  $rules    Rules object
+	 *
+	 * @since  3.6
+	 */
+
+	public function __construct($assetId = 1, JAccessRules $rules = null)
+	{
+		$this->set('assetId', $assetId);
+		$this->rules = $rules;
+		$this->db = JFactory::getDbo();
+	}
+
+	/**
+	 * Method to set a value Example: $access->set('items', $items);
+	 *
+	 * @param   string  $name   Name of the property
+	 * @param   mixed   $value  Value to assign to the property
+	 *
+	 * @return  self
+	 *
+	 * @since   3.6
+	 */
+	public function set($name, $value)
+	{
+		switch ($name)
+		{
+			case 'assetId':
+				if (is_numeric($value))
+				{
+					$this->assetId = (int) $value;
+				}
+				else
+				{
+					$this->assetId = (string) $value;
+				}
+				break;
+			case 'rules':
+				if ($value instanceof JAccessRules)
+				{
+					$this->rules = $value;
+				}
+		}
+
+		return $this;
+	}
+
+	/**
+	 * Method to get the value
+	 *
+	 * @param   string  $key           Key to search for in the data array
+	 * @param   mixed   $defaultValue  Default value to return if the key is not set
+	 *
+	 * @return  mixed   Value | defaultValue if doesn't exist
+	 *
+	 * @since   3.6
+	 */
+	public function get($key, $defaultValue = null)
+	{
+		return isset($this->$key) ? $this->$key : $defaultValue;
+	}
+
 	/**
 	 * Method for clearing static caches.
 	 *
@@ -59,99 +130,54 @@ class JAccess
 	/**
 	 * Method to check if a user is authorised to perform an action, optionally on an asset.
 	 *
-	 * @param   integer  $userId  Id of the user for which to check authorisation.
+	 * @param   integer  $id      Id of the user/group for which to check authorisation.
 	 * @param   string   $action  The name of the action to authorise.
 	 * @param   mixed    $asset   Integer asset id or the name of the asset as a string.  Defaults to the global asset node.
+	 * @param   boolean  $group   Is id a group id?
 	 *
 	 * @return  boolean  True if authorised.
 	 *
-	 * @since   11.1
+	 * @since   3.6
 	 */
-	public static function check($userId, $action, $asset = null)
+	public function isAllowed($id, $action, $asset = null, $group = false)
 	{
 		// Sanitise inputs.
-		$userId = (int) $userId;
+		$id = (int) $id;
+
+		if ($group)
+		{
+			$identities = JUserHelper::getGroupPath($id);
+		}
+		else
+		{
+			// Get all groups against which the user is mapped.
+			$identities = JUserHelper::getGroupsByUser($id);
+			array_unshift($identities, $id * -1);
+		}
 
 		$action = strtolower(preg_replace('#[\s\-]+#', '.', trim($action)));
-		$asset = strtolower(preg_replace('#[\s\-]+#', '.', trim($asset)));
+
+		if (isset($asset))
+		{
+			$this->set('assetId', $asset);
+		}
+
+		$asset = strtolower(preg_replace('#[\s\-]+#', '.', trim($this->assetId)));
 
 		// Default to the root asset node.
 		if (empty($asset))
 		{
-			$db = JFactory::getDbo();
-			$assets = JTable::getInstance('Asset', 'JTable', array('dbo' => $db));
+			$assets = JTable::getInstance('Asset', 'JTable', array('dbo' => $this->db));
 			$asset = $assets->getRootId();
 		}
 
 		// Get the rules for the asset recursively to root if not already retrieved.
 		if (empty(self::$assetRules[$asset]))
 		{
-			self::$assetRules[$asset] = self::getRules($asset, true);
+			self::$assetRules[$asset] = $this->getRules(true, $identities, $action);
 		}
-
-		// Get all groups against which the user is mapped.
-		$identities = JUserHelper::getGroupsByUser($userId);
-		array_unshift($identities, $userId * -1);
 
 		return self::$assetRules[$asset]->allow($action, $identities);
-	}
-
-	/**
-	 * Method to check if a group is authorised to perform an action, optionally on an asset.
-	 *
-	 * @param   integer  $groupId  The path to the group for which to check authorisation.
-	 * @param   string   $action   The name of the action to authorise.
-	 * @param   mixed    $asset    Integer asset id or the name of the asset as a string.  Defaults to the global asset node.
-	 *
-	 * @return  boolean  True if authorised.
-	 *
-	 * @since   11.1
-	 */
-	public static function checkGroup($groupId, $action, $asset = null)
-	{
-		// Sanitize inputs.
-		$groupId = (int) $groupId;
-		$action = strtolower(preg_replace('#[\s\-]+#', '.', trim($action)));
-		$asset = strtolower(preg_replace('#[\s\-]+#', '.', trim($asset)));
-
-		// Get group path for group
-		$groupPath = JUserHelper::getGroupPath($groupId);
-
-		// Default to the root asset node.
-		if (empty($asset))
-		{
-			$db = JFactory::getDbo();
-			$assets = JTable::getInstance('Asset', 'JTable', array('dbo' => $db));
-			$asset = $assets->getRootId();
-		}
-
-		// Get the rules for the asset recursively to root if not already retrieved.
-		if (empty(self::$assetRules[$asset]))
-		{
-			self::$assetRules[$asset] = self::getRules($asset, true);
-		}
-
-		return self::$assetRules[$asset]->allow($action, $groupPath);
-	}
-
-	/**
-	 * Method to return the JAccessRules object for an asset.  The returned object can optionally hold
-	 * only the rules explicitly set for the asset or the summation of all inherited rules from
-	 * parent assets and explicit rules.
-	 *
-	 * @param   mixed    $asset      Integer asset id or the name of the asset as a string.
-	 * @param   boolean  $recursive  True to return the rules object with inherited rules.
-	 *
-	 * @return  JAccessRules   JAccessRules object for the asset.
-	 *
-	 * @since   11.1
-	 * @deprecated  Use getRules instead
-	 */
-	public static function getAssetRules($asset, $recursive = false)
-	{
-		$access = new JAccess();
-
-		return $access->getRules($asset, $recursive);
 	}
 
 	/**
@@ -160,23 +186,22 @@ class JAccess
 	 * only the rules explicitly set for the asset or the summation of all inherited rules from
 	 * parent assets and explicit rules.
 	 *
-	 * @param   mixed    $asset      Integer asset id or the name of the asset as a string.
-	 * @param   boolean  $recursive  True to return the rules object with inherited rules.
-	 * @param   array    $groups     Array of group ids to get permissions for
-	 * @param   string   $action     Action name to limit results
+	 * @param   boolean       $recursive  True to return the rules object with inherited rules.
+	 * @param   array         $groups     Array of group ids to get permissions for
+	 * @param   string        $action     Action name to limit results
 	 *
 	 * @return  JAccessRules   JAccessRules object for the asset.
 	 */
-	public function getRules($asset = 1, $recursive = false, $groups = null, $action = null, JAccessRules $rules = null )
+	public function getRules($recursive = false, $groups = null, $action = null )
 	{
 		// Make a copy for later
 		$actionForCache = $action;
 
-		$cacheId = $this->getCacheId($asset, $recursive, $groups, $actionForCache);
+		$cacheId = $this->getCacheId($recursive, $groups, $actionForCache);
 
 		if (!isset(self::$permCache[$cacheId]))
 		{
-			$result = $this->getAssetPermissions($asset, $recursive, $groups, $actionForCache);
+			$result = $this->getAssetPermissions($recursive, $groups, $actionForCache);
 
 			// If no result get all permisions for root node and cache it!
 			if ($recursive && empty($result))
@@ -193,13 +218,13 @@ class JAccess
 		}
 
 		// Instantiate and return the JAccessRules object for the asset rules.
-		$rules = isset($rules) ? $rules : new JAccessRules;
-		$rules->mergeCollection(self::$permCache[$cacheId]);
+		$this->rules->mergeCollection(self::$permCache[$cacheId]);
+		$rules = $this->rules;
 
 		// If action was set return only this action's result
-		if (isset($action) && isset($rules[$action]))
+		if (isset($action) && isset($this->rules[$action]))
 		{
-			$rules = array($action => $rules[$action]);
+			$rules = array($action => $this->rules[$action]);
 		}
 
 
@@ -209,7 +234,6 @@ class JAccess
 	/**
 	 * Calculate internal cache id
 	 *
-	 * @param   mixed    $asset      Integer asset id or the name of the asset as a string.
 	 * @param   boolean  $recursive  True to return the rules object with inherited rules.
 	 * @param   array    $groups     Array of group ids to get permissions for
 	 * @param   string   &$action    Action name used for id calculation
@@ -217,13 +241,13 @@ class JAccess
 	 * @return string
 	 */
 
-	private function getCacheId($asset, $recursive, $groups, &$action)
+	private function getCacheId($recursive, $groups, &$action)
 	{
 		// We are optimizing only view for frontend, otherwise 1 query for all actions is faster globaly due to cache
 		if ($action == 'core.view')
 		{
 			// If we have all actions query already take data from cache
-			if (isset(self::$permCache[md5(serialize(array($asset, $recursive, $groups, null)))]))
+			if (isset(self::$permCache[md5(serialize(array($this->assetId, $recursive, $groups, null)))]))
 			{
 				$action = null;
 			}
@@ -234,7 +258,7 @@ class JAccess
 			$action = null;
 		}
 
-		$cacheId = md5(serialize(array($asset, $recursive, $groups, $action)));
+		$cacheId = md5(serialize(array($this->assetId, $recursive, $groups, $action)));
 
 		return $cacheId;
 	}
@@ -242,14 +266,13 @@ class JAccess
 	/**
 	 * Look for permissions based on asset id.
 	 *
-	 * @param   mixed    $asset      Integer asset id or the name of the asset as a string.
 	 * @param   boolean  $recursive  True to return the rules object with inherited rules.
 	 * @param   array    $groups     Array of group ids to get permissions for
 	 * @param   string   $action     Action name to limit results
 	 *
 	 * @return mixed   Db query result - the return value or null if the query failed.
 	 */
-	public  function getAssetPermissions($asset = 1, $recursive = false, $groups = array(), $action = null)
+	public  function getAssetPermissions($recursive = false, $groups = array(), $action = null)
 	{
 		$db = JFactory::getDbo();
 		$query = $db->getQuery(true);
@@ -282,14 +305,14 @@ class JAccess
 			}
 
 			$counter   = 1;
-			$allgroups = count($groups);
+			$allGroups = count($groups);
 
 			$groupQuery = ' AND (';
 
 			foreach ($groups AS $group)
 			{
 				$groupQuery .= 'p.group = ' . $db->quote((string) $group);
-				$groupQuery .= ($counter < $allgroups) ? ' OR ' : ' ) ';
+				$groupQuery .= ($counter < $allGroups) ? ' OR ' : ' ) ';
 				$counter++;
 			}
 
@@ -304,13 +327,13 @@ class JAccess
 		$query->leftJoin('#__permissions AS p ' . $conditions);
 
 		// If the asset identifier is numeric assume it is a primary key, else lookup by name.
-		if (is_numeric($asset))
+		if (is_numeric($this->assetId))
 		{
-			$query->where('a.id = ' . (int) $asset);
+			$query->where('a.id = ' . (int) $this->assetId);
 		}
 		else
 		{
-			$query->where('a.name = ' . $db->quote($asset));
+			$query->where('a.name = ' . $db->quote((string) $this->assetId));
 		}
 
 		$db->setQuery($query);
@@ -545,6 +568,67 @@ class JAccess
 
 		// Finally return the actions array
 		return $actions;
+	}
+
+	/**
+	 * Method to check if a user is authorised to perform an action, optionally on an asset.
+	 *
+	 * @param   integer  $userId  Id of the user for which to check authorisation.
+	 * @param   string   $action  The name of the action to authorise.
+	 * @param   mixed    $asset   Integer asset id or the name of the asset as a string.  Defaults to the global asset node.
+	 *
+	 * @return  boolean  True if authorised.
+	 *
+	 * @since   11.1
+	 * @deprecated  Use isAllowed instead
+	 */
+	public static function check($userId, $action, $asset = null)
+	{
+		$rules  = new JAccessRules();
+		$access = new JAccess($asset, $rules);
+
+		return $access->isAllowed($userId, $action, $asset, false);
+	}
+
+	/**
+	 * Method to check if a group is authorised to perform an action, optionally on an asset.
+	 *
+	 * @param   integer  $groupId  The path to the group for which to check authorisation.
+	 * @param   string   $action   The name of the action to authorise.
+	 * @param   mixed    $asset    Integer asset id or the name of the asset as a string.  Defaults to the global asset node.
+	 *
+	 * @return  boolean  True if authorised.
+	 *
+	 * @since   11.1
+	 * @deprecated  Use isAllowed instead
+	 */
+	public static function checkGroup($groupId, $action, $asset = null)
+	{
+		$rules  = new JAccessRules();
+		$access = new JAccess($asset, $rules);
+
+		return $access->isAllowed($groupId, $action, $asset, false);
+	}
+
+	/**
+	 * Method to return the JAccessRules object for an asset.  The returned object can optionally hold
+	 * only the rules explicitly set for the asset or the summation of all inherited rules from
+	 * parent assets and explicit rules.
+	 *
+	 * @param   mixed    $asset      Integer asset id or the name of the asset as a string.
+	 * @param   boolean  $recursive  True to return the rules object with inherited rules.
+	 *
+	 * @return  JAccessRules   JAccessRules object for the asset.
+	 *
+	 * @since   11.1
+	 * @deprecated  Use getRules instead
+	 */
+	public static function getAssetRules($asset, $recursive = false)
+	{
+		$rules  = new JAccessRules();
+		$access = new JAccess($asset, $rules);
+
+		return $access->getRules($recursive, null, null);
 	}
 
 	/**
