@@ -222,11 +222,13 @@ class JAccess
 		$rules = $this->rules;
 
 		// If action was set return only this action's result
-		if (isset($action) && isset($this->rules[$action]))
-		{
-			$rules = array($action => $this->rules[$action]);
-		}
+		$data = $rules->getData();
 
+		if (isset($action) && isset($data[$action]))
+		{
+			$data = array($action => $data[$action]);
+			$rules = new JAccessRules($data);
+		}
 
 		return $rules;
 	}
