@@ -362,6 +362,8 @@ class JAccess
 
 	/**
 	 * Merge new permissions with old rules from assets table for backwards compatibility
+	 *
+	 * @param $results db query result object with persmissions and rules
 	 */
 	private function mergePermissionsRules($results)
 	{
