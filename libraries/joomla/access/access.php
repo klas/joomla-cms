@@ -86,7 +86,8 @@ class JAccess
 		// Get the rules for the asset recursively to root if not already retrieved.
 		if (empty(self::$assetRules[$asset]))
 		{
-			self::$assetRules[$asset] = self::getRules($asset, true);
+			$access = new JAccess();
+			self::$assetRules[$asset] = $access->getRules($asset, true);
 		}
 
 		// Get all groups against which the user is mapped.
@@ -128,7 +129,8 @@ class JAccess
 		// Get the rules for the asset recursively to root if not already retrieved.
 		if (empty(self::$assetRules[$asset]))
 		{
-			self::$assetRules[$asset] = self::getRules($asset, true);
+			$access = new JAccess();
+			self::$assetRules[$asset] = $access->getRules($asset, true);
 		}
 
 		return self::$assetRules[$asset]->allow($action, $groupPath);
