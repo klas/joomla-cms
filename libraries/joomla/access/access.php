@@ -174,7 +174,7 @@ class JAccess
 		// Get the rules for the asset recursively to root if not already retrieved.
 		if (empty(self::$assetRules[$asset]))
 		{
-			self::$assetRules[$asset] = $this->getRules(true, $identities, $action);
+			self::$assetRules[$asset] = $this->getRules(true, null, null); // cache ALL rules for this asset
 		}
 
 		return self::$assetRules[$asset]->allow($action, $identities);
@@ -186,9 +186,9 @@ class JAccess
 	 * only the rules explicitly set for the asset or the summation of all inherited rules from
 	 * parent assets and explicit rules.
 	 *
-	 * @param   boolean       $recursive  True to return the rules object with inherited rules.
-	 * @param   array         $groups     Array of group ids to get permissions for
-	 * @param   string        $action     Action name to limit results
+	 * @param   boolean  $recursive  True to return the rules object with inherited rules.
+	 * @param   array    $groups     Array of group ids to get permissions for
+	 * @param   string   $action     Action name to limit results
 	 *
 	 * @return  JAccessRules   JAccessRules object for the asset.
 	 */
@@ -276,8 +276,7 @@ class JAccess
 	 */
 	public  function getAssetPermissions($recursive = false, $groups = array(), $action = null)
 	{
-		$db = JFactory::getDbo();
-		$query = $db->getQuery(true);
+		$query = $this->db->getQuery(true);
 
 		// Build the database query to get the rules for the asset.
 		$query->from('#__assets AS a');
@@ -285,19 +284,18 @@ class JAccess
 		// If we want the rules cascading up to the global asset node we need a self-join.
 		if ($recursive)
 		{
-			$query->select('b.id, b.rules, p.permission, p.value, p.group');
 			$query->from('#__assets AS b');
 			$query->where('a.lft BETWEEN b.lft AND b.rgt');
 			$query->order('b.lft');
-
-			$conditions = 'ON b.id = p.assetid ';
+			$prefix = 'b';
 		}
 		else
 		{
-			$query->select('a.id, a.rules, p.permission, p.value, p.group');
-
-			$conditions = 'ON a.id = p.assetid ';
+			$prefix = 'a';
 		}
+
+		$query->select($prefix . '.id, a.rules, p.permission, p.value, p.group');
+		$conditions = 'ON ' . $prefix . '.id = p.assetid ';
 
 		if (isset($groups) && $groups != array())
 		{
@@ -313,7 +311,7 @@ class JAccess
 
 			foreach ($groups AS $group)
 			{
-				$groupQuery .= 'p.group = ' . $db->quote((string) $group);
+				$groupQuery .= 'p.group = ' . $this->db->quote((string) $group);
 				$groupQuery .= ($counter < $allGroups) ? ' OR ' : ' ) ';
 				$counter++;
 			}
@@ -323,7 +321,7 @@ class JAccess
 
 		if (isset($action))
 		{
-			$conditions .= ' AND p.permission = ' . $db->quote((string) $action) . ' ';
+			$conditions .= ' AND p.permission = ' . $this->db->quote((string) $action) . ' ';
 		}
 
 		$query->leftJoin('#__permissions AS p ' . $conditions);
@@ -335,27 +333,25 @@ class JAccess
 		}
 		else
 		{
-			$query->where('a.name = ' . $db->quote((string) $this->assetId));
+			$query->where('a.name = ' . $this->db->quote((string) $this->assetId));
 		}
 
-		$db->setQuery($query);
-		$result = $db->loadObjectList();
+		$this->db->setQuery($query);
+		$result = $this->db->loadObjectList();
 
 		return $result;
 	}
 
 	public function getRootAssetPermissions()
 	{
-		$db = JFactory::getDbo();
-
-		$query = $db->getQuery(true);
+		$query = $this->db->getQuery(true);
 		$query  ->select('b.id, b.rules, p.permission, p.value, p.group')
 				->from('#__assets AS b')
 				->leftJoin('#__permissions AS p ON b.id = p.assetid')
 				->where('b.parent_id=0');
-		$db->setQuery($query);
+		$this->db->setQuery($query);
 
-		self::$rootAsset  = $db->loadObjectList();
+		self::$rootAsset  = $this->db->loadObjectList();
 
 		return self::$rootAsset;
 	}
@@ -363,7 +359,8 @@ class JAccess
 	/**
 	 * Merge new permissions with old rules from assets table for backwards compatibility
 	 *
-	 * @param $results db query result object with persmissions and rules
+	 * @param    object  $results database query result object with permissions and rules
+	 * @return   array   authorisation matrix
 	 */
 	private function mergePermissionsRules($results)
 	{
@@ -611,7 +608,7 @@ class JAccess
 		$rules  = new JAccessRules();
 		$access = new JAccess($asset, $rules);
 
-		return $access->isAllowed($groupId, $action, $asset, false);
+		return $access->isAllowed($groupId, $action, $asset, true);
 	}
 
 	/**
