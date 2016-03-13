@@ -34,14 +34,44 @@ class JAccess
 	 */
 	protected static $assetRules = array();
 
+	/**
+	 * Array of permissions
+	 *
+	 * @var    array
+	 * @since  3.6
+	 */
 	public static $permCache = array();
 
+	/**
+	 * Root asset permissions
+	 *
+	 * @var    array
+	 * @since  3.6
+	 */
 	public static $rootAsset = null;
 
+	/**
+	 * Asset id
+	 *
+	 * @var    mixed string or integer
+	 * @since  3.6
+	 */
 	protected $assetId = 1;
 
+	/**
+	 * Rules object
+	 *
+	 * @var    object JAccessRules
+	 * @since  3.6
+	 */
 	protected $rules = null;
 
+	/**
+	 * Database object
+	 *
+	 * @var    object JDatabase object
+	 * @since  3.6
+	 */
 	protected $db = null;
 
 	/**
@@ -169,12 +199,14 @@ class JAccess
 		{
 			$assets = JTable::getInstance('Asset', 'JTable', array('dbo' => $this->db));
 			$asset = $assets->getRootId();
+			$this->set('assetId', $asset);
 		}
 
 		// Get the rules for the asset recursively to root if not already retrieved.
 		if (empty(self::$assetRules[$asset]))
 		{
-			self::$assetRules[$asset] = $this->getRules(true, null, null); // cache ALL rules for this asset
+			// Cache ALL rules for this asset
+			self::$assetRules[$asset] = $this->getRules(true, null, null);
 		}
 
 		return self::$assetRules[$asset]->allow($action, $identities);
@@ -266,7 +298,7 @@ class JAccess
 	}
 
 	/**
-	 * Look for permissions based on asset id.
+	 * Query permissions based on asset id.
 	 *
 	 * @param   boolean  $recursive  True to return the rules object with inherited rules.
 	 * @param   array    $groups     Array of group ids to get permissions for
@@ -294,7 +326,7 @@ class JAccess
 			$prefix = 'a';
 		}
 
-		$query->select($prefix . '.id, a.rules, p.permission, p.value, p.group');
+		$query->select($prefix . '.id, ' . $prefix . '.rules, p.permission, p.value, p.group');
 		$conditions = 'ON ' . $prefix . '.id = p.assetid ';
 
 		if (isset($groups) && $groups != array())
@@ -342,6 +374,11 @@ class JAccess
 		return $result;
 	}
 
+	/**
+	 * Query root asset permissions
+	 *
+	 * @return mixed   Db query result - the return value or null if the query failed.
+	 */
 	public function getRootAssetPermissions()
 	{
 		$query = $this->db->getQuery(true);
@@ -359,8 +396,9 @@ class JAccess
 	/**
 	 * Merge new permissions with old rules from assets table for backwards compatibility
 	 *
-	 * @param    object  $results database query result object with permissions and rules
-	 * @return   array   authorisation matrix
+	 * @param   object  $results  database query result object with permissions and rules
+	 *
+	 * @return  array   authorisation matrix
 	 */
 	private function mergePermissionsRules($results)
 	{
