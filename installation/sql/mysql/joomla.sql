@@ -2003,7 +2003,7 @@ CREATE TABLE `#__permissions` (
   INDEX ( `group` ),
   INDEX ( `value` ),
   UNIQUE KEY `uniq` ( `permission` , `group` , `assetid` )
-) ENGINE = InnoDB COMMENT = 'Joomla permission table' DEFAULT CHARSET=utf8mb4 DEFAULT COLLATE=utf8mb4_general_ci;
+) ENGINE = InnoDB COMMENT = 'Joomla permission table' DEFAULT CHARSET=utf8mb4 DEFAULT COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `#__viewlevels`
