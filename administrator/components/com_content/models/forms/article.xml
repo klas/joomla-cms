@@ -42,9 +42,12 @@
 				JTRASHED</option>
 		</field>
 
-		<field name="catid" type="categoryedit"
-			label="JCATEGORY" description="JFIELD_CATEGORY_DESC"
+		<field name="catid"
+			   type="categoryedit"
+			label="JCATEGORY"
+			   description="JFIELD_CATEGORY_DESC"
 			required="true"
+			   default=""
 		>
 		</field>
 
@@ -202,6 +205,17 @@
 			</field>
 
 			<field
+				name="info_block_show_title"
+				type="list"
+				class="chzn-color"
+				label="COM_CONTENT_FIELD_INFOBLOCK_TITLE_LABEL"
+				description="COM_CONTENT_FIELD_INFOBLOCK_TITLE_DESC">
+				<option value="">JGLOBAL_USE_GLOBAL</option>
+				<option	value="0">JHIDE</option>
+				<option	value="1">JSHOW</option>
+			</field>
+
+			<field
 				name="show_category"
 				type="list"
 				class="chzn-color"
@@ -243,6 +257,17 @@
 				<option value="">JGLOBAL_USE_GLOBAL</option>
 				<option	value="0">JNO</option>
 				<option	value="1">JYES</option>
+			</field>
+			
+			<field
+				name="show_associations"
+				type="list"
+				class="chzn-color"
+				label="JGLOBAL_SHOW_ASSOCIATIONS_LABEL"
+				description="JGLOBAL_SHOW_ASSOCIATIONS_DESC">
+				<option value="">JGLOBAL_USE_GLOBAL</option>
+				<option value="1">JSHOW</option>
+				<option value="0">JHIDE</option>
 			</field>
 
 			<field
@@ -398,6 +423,11 @@
 			<field name="alternative_readmore" type="text"
 				label="JFIELD_READMORE_LABEL"
 				description="JFIELD_READMORE_DESC"
+				size="25" />
+
+			<field name="article_page_title" type="text"
+				label="COM_CONTENT_FIELD_BROWSER_PAGE_TITLE_LABEL"
+				description="COM_CONTENT_FIELD_BROWSER_PAGE_TITLE_DESC"
 				size="25" />
 
 			<field name="article_layout" type="componentlayout"
