@@ -608,6 +608,45 @@ class JAccess
 	}
 
 	/**
+	 * Method to get the extension name from the asset name.
+	 *
+	 * @param   string  $asset  Asset Name
+	 *
+	 * @return  string  Extension Name.
+	 *
+	 * @since    1.6
+	 */
+	public static function getExtensionNameFromAsset($asset)
+	{
+		static $loaded = array();
+
+		if (!isset($loaded[$asset]))
+		{
+			if (is_numeric($asset))
+			{
+				$table = JTable::getInstance('Asset');
+				$table->load($asset);
+				$assetName = $table->name;
+			}
+			else
+			{
+				$assetName = $asset;
+			}
+
+			$firstDot = strpos($assetName, '.');
+
+			if ($assetName !== 'root.1' && $firstDot !== false)
+			{
+				$assetName = substr($assetName, 0, $firstDot);
+			}
+
+			$loaded[$asset] = $assetName;
+		}
+
+		return $loaded[$asset];
+	}
+
+	/**
 	 * Method to check if a user is authorised to perform an action, optionally on an asset.
 	 *
 	 * @param   integer  $userId  Id of the user for which to check authorisation.
@@ -731,5 +770,21 @@ class JAccess
 	protected static function getGroupPath($groupId)
 	{
 		return JUserHelper::getGroupPath($groupId);
+	}
+
+	/**
+	 * Method to preload the JAccessRules object for the given asset type.
+	 *
+	 * @param   string|array  $assetTypes  e.g. 'com_content.article'
+	 * @param   boolean       $reload      Set to true to reload from database.
+	 *
+	 * @return   boolean True on success.
+	 *
+	 * @since    1.6
+	 * @deprecated
+	 */
+	public static function preload($assetTypes = 'components', $reload = false)
+	{
+		return true;
 	}
 }
