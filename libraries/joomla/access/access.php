@@ -75,17 +75,19 @@ class JAccess
 	/**
 	 * Instantiate the access class
 	 *
-	 * @param   mixed         $assetId  Assets id, can be numeric or string
-	 * @param   JAccessRules  $rules    Rules object
+	 * @param   mixed            $assetId  Assets id, can be numeric or string
+	 * @param   JAccessRules     $rules    Rules object
+	 * @param   JDatabaseDriver  $db       Database object
+	 *
 	 *
 	 * @since  3.6
 	 */
 
-	public function __construct($assetId = 1, JAccessRules $rules = null)
+	public function __construct($assetId = 1, JAccessRules $rules = null, JDatabaseDriver $db = null)
 	{
 		$this->set('assetId', $assetId);
-		$this->rules = $rules;
-		$this->db = JFactory::getDbo();
+		$this->rules = isset($rules) ? $rules : new JAccessRules();
+		$this->db = isset($db) ? $db : JFactory::getDbo();
 	}
 
 	/**
@@ -660,8 +662,7 @@ class JAccess
 	 */
 	public static function check($userId, $action, $asset = null)
 	{
-		$rules  = new JAccessRules();
-		$access = new JAccess($asset, $rules);
+		$access = new JAccess($asset);
 
 		return $access->isAllowed($userId, $action, $asset, false);
 	}
@@ -680,8 +681,7 @@ class JAccess
 	 */
 	public static function checkGroup($groupId, $action, $asset = null)
 	{
-		$rules  = new JAccessRules();
-		$access = new JAccess($asset, $rules);
+		$access = new JAccess($asset);
 
 		return $access->isAllowed($groupId, $action, $asset, true);
 	}
@@ -702,8 +702,7 @@ class JAccess
 	 */
 	public static function getAssetRules($asset, $recursive = false, $recursiveParentAsset = false)
 	{
-		$rules  = new JAccessRules();
-		$access = new JAccess($asset, $rules);
+		$access = new JAccess($asset);
 
 		return $access->getRules($recursive, null, null);
 	}
