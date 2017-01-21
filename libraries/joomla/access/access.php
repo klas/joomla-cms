@@ -36,7 +36,7 @@ class JAccess
 	 * Array of permissions
 	 *
 	 * @var    array
-	 * @since  3.6
+	 * @since  4.0
 	 */
 	public static $permCache = array();
 
@@ -44,7 +44,7 @@ class JAccess
 	 * Root asset permissions
 	 *
 	 * @var    array
-	 * @since  3.6
+	 * @since  4.0
 	 */
 	public static $rootAsset = null;
 
@@ -52,7 +52,7 @@ class JAccess
 	 * Asset id
 	 *
 	 * @var    mixed string or integer
-	 * @since  3.6
+	 * @since  4.0
 	 */
 	protected $assetId = 1;
 
@@ -60,7 +60,7 @@ class JAccess
 	 * Rules object
 	 *
 	 * @var    object JAccessRules
-	 * @since  3.6
+	 * @since  4.0
 	 */
 	protected $rules = null;
 
@@ -68,7 +68,7 @@ class JAccess
 	 * Database object
 	 *
 	 * @var    object JDatabase object
-	 * @since  3.6
+	 * @since  4.0
 	 */
 	protected $db = null;
 
@@ -80,7 +80,7 @@ class JAccess
 	 * @param   JDatabaseDriver  $db       Database object
 	 *
 	 *
-	 * @since  3.6
+	 * @since  4.0
 	 */
 
 	public function __construct($assetId = 1, JAccessRules $rules = null, JDatabaseDriver $db = null)
@@ -98,7 +98,7 @@ class JAccess
 	 *
 	 * @return  self
 	 *
-	 * @since   3.6
+	 * @since   4.0
 	 */
 	public function set($name, $value)
 	{
@@ -132,7 +132,7 @@ class JAccess
 	 *
 	 * @return  mixed   Value | defaultValue if doesn't exist
 	 *
-	 * @since   3.6
+	 * @since   4.0
 	 */
 	public function get($key, $defaultValue = null)
 	{
@@ -167,7 +167,7 @@ class JAccess
 	 *
 	 * @return  boolean  True if authorised.
 	 *
-	 * @since   3.6
+	 * @since   4.0
 	 */
 	public function isAllowed($id, $action, $asset = null, $group = false)
 	{
@@ -311,12 +311,12 @@ class JAccess
 		$query = $this->db->getQuery(true);
 
 		// Build the database query to get the rules for the asset.
-		$query->from('#__assets AS a');
+		$query->from($this->db->qn('#__assets', 'a'));
 
 		// If we want the rules cascading up to the global asset node we need a self-join.
 		if ($recursive)
 		{
-			$query->from('#__assets AS b');
+			$query->from($this->db->qn('#__assets', 'b'));
 			$query->where('a.lft BETWEEN b.lft AND b.rgt');
 			$query->order('b.lft');
 			$prefix = 'b';
@@ -356,7 +356,7 @@ class JAccess
 			$conditions .= ' AND p.permission = ' . $this->db->quote((string) $action) . ' ';
 		}
 
-		$query->leftJoin('#__permissions AS p ' . $conditions);
+		$query->leftJoin($this->db->qn('#__permissions', 'p') . ' ' . $conditions);
 
 		// If the asset identifier is numeric assume it is a primary key, else lookup by name.
 		if (is_numeric($this->assetId))
@@ -383,8 +383,8 @@ class JAccess
 	{
 		$query = $this->db->getQuery(true);
 		$query  ->select('b.id, b.rules, p.permission, p.value, p.group')
-				->from('#__assets AS b')
-				->leftJoin('#__permissions AS p ON b.id = p.assetid')
+				->from($this->db->qn('#__assets', 'b'))
+				->leftJoin($this->db->qn('#__permissions', 'p') . ' ON b.id = p.assetid')
 				->where('b.parent_id=0');
 		$this->db->setQuery($query);
 
@@ -772,19 +772,4 @@ class JAccess
 		return JUserHelper::getGroupPath($groupId);
 	}
 
-	/**
-	 * Method to preload the JAccessRules object for the given asset type.
-	 *
-	 * @param   string|array  $assetTypes  e.g. 'com_content.article'
-	 * @param   boolean       $reload      Set to true to reload from database.
-	 *
-	 * @return   boolean True on success.
-	 *
-	 * @since    1.6
-	 * @deprecated
-	 */
-	public static function preload($assetTypes = 'components', $reload = false)
-	{
-		return true;
-	}
 }
