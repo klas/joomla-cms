@@ -326,7 +326,7 @@ class JAccess
 			$prefix = 'a';
 		}
 
-		$query->select($prefix . '.id, ' . $prefix . '.rules, p.permission, p.value, p.group');
+		$query->select($prefix . '.id, ' . $prefix . '.rules, p.permission, p.value, ' . $this->db->qn('p'). '.' . $this->db->qn('group'));
 		$conditions = 'ON ' . $prefix . '.id = p.assetid ';
 
 		if (isset($groups) && $groups != array())
@@ -368,6 +368,8 @@ class JAccess
 			$query->where('a.name = ' . $this->db->quote((string) $this->assetId));
 		}
 
+		$test = (string)$query;
+
 		$this->db->setQuery($query);
 		$result = $this->db->loadObjectList();
 
@@ -382,7 +384,7 @@ class JAccess
 	public function getRootAssetPermissions()
 	{
 		$query = $this->db->getQuery(true);
-		$query  ->select('b.id, b.rules, p.permission, p.value, p.group')
+		$query  ->select('b.id, b.rules, p.permission, p.value, ' . $this->db->qn('p'). '.' . $this->db->qn('group'))
 				->from($this->db->qn('#__assets', 'b'))
 				->leftJoin($this->db->qn('#__permissions', 'p') . ' ON b.id = p.assetid')
 				->where('b.parent_id=0');
@@ -660,7 +662,7 @@ class JAccess
 	 * @since   11.1
 	 * @deprecated  Use isAllowed instead
 	 */
-	public static function check($userId, $action, $asset = null)
+	public static function check($userId, $action, $asset = 1)
 	{
 		$access = new JAccess($asset);
 
@@ -679,7 +681,7 @@ class JAccess
 	 * @since   11.1
 	 * @deprecated  Use isAllowed instead
 	 */
-	public static function checkGroup($groupId, $action, $asset = null)
+	public static function checkGroup($groupId, $action, $asset = 1)
 	{
 		$access = new JAccess($asset);
 
