@@ -236,7 +236,7 @@ class JAccess
 			$result = $this->getAssetPermissions($recursive, $groups, $actionForCache);
 
 			// If no result get all permisions for root node and cache it!
-			if ($recursive && empty($result))
+			if (empty($result))
 			{
 				if (!isset(self::$rootAsset))
 				{
