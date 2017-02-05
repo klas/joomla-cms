@@ -11,21 +11,15 @@ defined('_JEXEC') or die;
 
 JHtml::_('bootstrap.tooltip');
 JHtml::_('behavior.multiselect');
-JHtml::_('formbehavior.chosen', 'select');
+
 
 $listOrder = $this->escape($this->state->get('list.ordering'));
 $listDirn  = $this->escape($this->state->get('list.direction'));
 ?>
 <form action="<?php echo JRoute::_('index.php?option=com_checkin'); ?>" method="post" name="adminForm" id="adminForm">
-<?php if (!empty( $this->sidebar)) : ?>
-	<div id="j-sidebar-container" class="span2">
-		<?php echo $this->sidebar; ?>
-	</div>
-	<div id="j-main-container" class="span10">
-<?php else : ?>
-	<div id="j-main-container">
-<?php endif;?>
+	<div id="j-main-container" class="j-main-container">
 		<?php echo JLayoutHelper::render('joomla.searchtools.default', array('view' => $this)); ?>
+		<div class="clearfix"></div>
 		<?php if ($this->total > 0) : ?>
 			<table id="global-checkin" class="table table-striped">
 				<thead>
@@ -46,14 +40,14 @@ $listDirn  = $this->escape($this->state->get('list.direction'));
 					<?php $i = 0; ?>
 					<?php foreach ($this->items as $table => $count) : ?>
 						<tr class="row<?php echo $i % 2; ?>">
-							<td class="center"><?php echo JHtml::_('grid.id', $i, $table); ?></td>
+							<td class="text-center"><?php echo JHtml::_('grid.id', $i, $table); ?></td>
 							<td>
 								<label for="cb<?php echo $i ?>">
 									<?php echo JText::sprintf('COM_CHECKIN_TABLE', $table); ?>
 								</label>
 							</td>
 							<td>
-								<span class="label label-warning"><?php echo $count; ?></span>
+								<span class="badge badge-default"><?php echo $count; ?></span>
 							</td>
 						</tr>
 						<?php $i++; ?>

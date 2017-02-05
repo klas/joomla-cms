@@ -11,25 +11,18 @@ defined('_JEXEC') or die;
 ?>
 <div id="installer-warnings" class="clearfix">
 	<form action="<?php echo JRoute::_('index.php?option=com_installer&view=warnings'); ?>" method="post" name="adminForm" id="adminForm">
-	<?php if (!empty( $this->sidebar)) : ?>
-		<div id="j-sidebar-container" class="span2">
-			<?php echo $this->sidebar; ?>
-		</div>
-		<div id="j-main-container" class="span10">
-	<?php else : ?>
-		<div id="j-main-container">
-	<?php endif; ?>
+		<div id="j-main-container" class="j-main-container">
 		<?php if (count($this->messages)) : ?>
-			<?php echo JHtml::_('bootstrap.startAccordion', 'warnings', array('active' => 'warning0')); ?>
-				<?php $i = 0; ?>
-				<?php foreach ($this->messages as $message) : ?>
-					<?php echo JHtml::_('bootstrap.addSlide', 'warnings', $message['message'], 'warning' . ($i++)); ?>
-						<?php echo $message['description']; ?>
-					<?php echo JHtml::_('bootstrap.endSlide'); ?>
-				<?php endforeach; ?>
-					<?php echo JHtml::_('bootstrap.addSlide', 'warnings', JText::_('COM_INSTALLER_MSG_WARNINGFURTHERINFO'), 'furtherinfo'); ?>
-						<?php echo JText::_('COM_INSTALLER_MSG_WARNINGFURTHERINFODESC'); ?>
-					<?php echo JHtml::_('bootstrap.endSlide'); ?>
+			<?php foreach ($this->messages as $message) : ?>
+				<div class="alert alert-warning" role="alert">
+					<h4 class="alert-heading"><?php echo $message['message']; ?></h4>
+					<p class="m-b-0"><?php echo $message['description']; ?></p>
+				</div>
+			<?php endforeach; ?>
+			<div class="alert alert-info" role="alert">
+				<h4 class="alert-heading"><?php echo JText::_('COM_INSTALLER_MSG_WARNINGFURTHERINFO'); ?></h4>
+				<p class="m-b-0"><?php echo JText::_('COM_INSTALLER_MSG_WARNINGFURTHERINFODESC'); ?></p>
+			</div>
 			<?php echo JHtml::_('bootstrap.endAccordion'); ?>
 		<?php endif; ?>
 			<div>

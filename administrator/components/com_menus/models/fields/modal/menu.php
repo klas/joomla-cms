@@ -115,14 +115,24 @@ class JFormFieldModal_Menu extends JFormField
 		$title = empty($title) ? JText::_('COM_MENUS_SELECT_A_MENUITEM') : htmlspecialchars($title, ENT_QUOTES, 'UTF-8');
 
 		// The current menu item display field.
-		$html  = '<span class="input-append">';
-		$html .= '<input class="input-medium" id="' . $this->id . '_name" type="text" value="' . $title . '" disabled="disabled" size="35" />';
+		$html  = '';
+		if ($allowSelect || $allowNew || $allowEdit || $allowClear)
+		{
+			$html .= '<span class="input-group">';
+		}
+		
+		$html .= '<input class="form-control" id="' . $this->id . '_name" type="text" value="' . $title . '" disabled="disabled" size="35" />';
+
+		if ($allowSelect || $allowNew || $allowEdit || $allowClear)
+		{
+			$html .= '<span class="input-group-btn">';
+		}
 
 		// Select menu item button
 		if ($allowSelect)
 		{
 			$html .= '<a'
-				. ' class="btn hasTooltip' . ($value ? ' hidden' : '') . '"'
+				. ' class="btn btn-primary hasTooltip' . ($value ? ' element-invisible' : '') . '"'
 				. ' id="' . $this->id . '_select"'
 				. ' data-toggle="modal"'
 				. ' role="button"'
@@ -136,7 +146,7 @@ class JFormFieldModal_Menu extends JFormField
 		if ($allowNew)
 		{
 			$html .= '<a'
-				. ' class="btn hasTooltip' . ($value ? ' hidden' : '') . '"'
+				. ' class="btn btn-secondary hasTooltip' . ($value ? ' element-invisible' : '') . '"'
 				. ' id="' . $this->id . '_new"'
 				. ' data-toggle="modal"'
 				. ' role="button"'
@@ -150,7 +160,7 @@ class JFormFieldModal_Menu extends JFormField
 		if ($allowEdit)
 		{
 			$html .= '<a'
-				. ' class="btn hasTooltip' . ($value ? '' : ' hidden') . '"'
+				. ' class="btn btn-secondary hasTooltip' . ($value ? '' : ' element-invisible') . '"'
 				. ' id="' . $this->id . '_edit"'
 				. ' data-toggle="modal"'
 				. ' role="button"'
@@ -164,7 +174,7 @@ class JFormFieldModal_Menu extends JFormField
 		if ($allowClear)
 		{
 			$html .= '<a'
-				. ' class="btn' . ($value ? '' : ' hidden') . '"'
+				. ' class="btn btn-secondary' . ($value ? '' : ' element-invisible') . '"'
 				. ' id="' . $this->id . '_clear"'
 				. ' href="#"'
 				. ' onclick="window.processModalParent(\'' . $this->id . '\'); return false;">'
@@ -172,7 +182,10 @@ class JFormFieldModal_Menu extends JFormField
 				. '</a>';
 		}
 
-		$html .= '</span>';
+		if ($allowSelect || $allowNew || $allowEdit || $allowClear)
+		{
+			$html .= '</span></span>';
+		}
 
 		// Select menu item modal
 		if ($allowSelect)
@@ -185,9 +198,10 @@ class JFormFieldModal_Menu extends JFormField
 					'url'         => $urlSelect,
 					'height'      => '400px',
 					'width'       => '800px',
-					'bodyHeight'  => '70',
-					'modalWidth'  => '80',
-					'footer'      => '<a role="button" class="btn" data-dismiss="modal" aria-hidden="true">' . JText::_('JLIB_HTML_BEHAVIOR_CLOSE') . '</a>',
+					'bodyHeight'  => 70,
+					'modalWidth'  => 80,
+					'footer'      => '<a role="button" class="btn btn-secondary" data-dismiss="modal" aria-hidden="true">'
+										. JText::_('JLIB_HTML_BEHAVIOR_CLOSE') . '</a>',
 				)
 			);
 		}
@@ -206,9 +220,9 @@ class JFormFieldModal_Menu extends JFormField
 					'url'         => $urlNew,
 					'height'      => '400px',
 					'width'       => '800px',
-					'bodyHeight'  => '70',
-					'modalWidth'  => '80',
-					'footer'      => '<a role="button" class="btn" aria-hidden="true"'
+					'bodyHeight'  => 70,
+					'modalWidth'  => 80,
+					'footer'      => '<a role="button" class="btn btn-secondary" aria-hidden="true"'
 							. ' onclick="window.processModalEdit(this, \'' . $this->id . '\', \'add\', \'item\', \'cancel\', \'item-form\'); return false;">'
 							. JText::_('JLIB_HTML_BEHAVIOR_CLOSE') . '</a>'
 							. '<a role="button" class="btn btn-primary" aria-hidden="true"'
@@ -235,9 +249,9 @@ class JFormFieldModal_Menu extends JFormField
 					'url'         => $urlEdit,
 					'height'      => '400px',
 					'width'       => '800px',
-					'bodyHeight'  => '70',
-					'modalWidth'  => '80',
-					'footer'      => '<a role="button" class="btn" aria-hidden="true"'
+					'bodyHeight'  => 70,
+					'modalWidth'  => 80,
+					'footer'      => '<a role="button" class="btn btn-secondary" aria-hidden="true"'
 							. ' onclick="window.processModalEdit(this, \'' . $this->id . '\', \'edit\', \'item\', \'cancel\', \'item-form\'); return false;">'
 							. JText::_('JLIB_HTML_BEHAVIOR_CLOSE') . '</a>'
 							. '<a role="button" class="btn btn-primary" aria-hidden="true"'

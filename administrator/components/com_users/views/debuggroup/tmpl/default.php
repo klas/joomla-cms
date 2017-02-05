@@ -13,21 +13,14 @@ defined('_JEXEC') or die;
 JHtml::addIncludePath(JPATH_COMPONENT . '/helpers/html');
 
 JHtml::_('bootstrap.tooltip');
-JHtml::_('formbehavior.chosen', 'select');
+
 
 $listOrder = $this->escape($this->state->get('list.ordering'));
 $listDirn  = $this->escape($this->state->get('list.direction'));
 $colSpan   = 4 + count($this->actions);
 ?>
 <form action="<?php echo JRoute::_('index.php?option=com_users&view=debuggroup&group_id=' . (int) $this->state->get('group_id')); ?>" method="post" name="adminForm" id="adminForm">
-<?php if (!empty( $this->sidebar)) : ?>
-	<div id="j-sidebar-container" class="span2">
-		<?php echo $this->sidebar; ?>
-	</div>
-	<div id="j-main-container" class="span10">
-<?php else : ?>
-	<div id="j-main-container">
-<?php endif; ?>
+	<div id="j-main-container" class="j-main-container">
 		<?php echo JLayoutHelper::render('joomla.searchtools.default', array('view' => $this)); ?>
 		<div class="clearfix"> </div>
 		<table class="table table-striped">
@@ -40,14 +33,14 @@ $colSpan   = 4 + count($this->actions);
 						<?php echo JHtml::_('searchtools.sort', 'COM_USERS_HEADING_ASSET_NAME', 'a.name', $listDirn, $listOrder); ?>
 					</th>
 					<?php foreach ($this->actions as $key => $action) : ?>
-					<th width="5%" class="center">
+					<th width="5%" class="text-center">
 						<span class="hasTooltip" title="<?php echo JHtml::tooltipText($key, $action[1]); ?>"><?php echo JText::_($key); ?></span>
 					</th>
 					<?php endforeach; ?>
-					<th width="5%" class="nowrap center">
+					<th width="5%" class="nowrap text-center">
 						<?php echo JHtml::_('searchtools.sort', 'COM_USERS_HEADING_LFT', 'a.lft', $listDirn, $listOrder); ?>
 					</th>
-					<th width="1%" class="nowrap center">
+					<th width="1%" class="nowrap text-center">
 						<?php echo JHtml::_('searchtools.sort', 'JGRID_HEADING_ID', 'a.id', $listDirn, $listOrder); ?>
 					</th>
 				</tr>
@@ -86,15 +79,15 @@ $colSpan   = 4 + count($this->actions);
 								$button = '';
 							endif;
 							?>
-						<td class="center">
+						<td class="text-center">
 							<span class="icon-white <?php echo $class; ?>"></span>
 						</td>
 						<?php endforeach; ?>
-						<td class="center">
+						<td class="text-center">
 							<?php echo (int) $item->lft; ?>
 							- <?php echo (int) $item->rgt; ?>
 						</td>
-						<td class="center">
+						<td class="text-center">
 							<?php echo (int) $item->id; ?>
 						</td>
 					</tr>

@@ -9,7 +9,7 @@
 
 defined('_JEXEC') or die;
 
-JHtml::_('formbehavior.chosen', 'select');
+
 JHtml::_('bootstrap.tooltip');
 
 $listOrder     = $this->escape($this->state->get('list.ordering'));
@@ -38,45 +38,38 @@ JFactory::getDocument()->addScriptDeclaration('
 ');
 ?>
 <form action="<?php echo JRoute::_('index.php?option=com_finder&view=maps'); ?>" method="post" name="adminForm" id="adminForm">
-<?php if (!empty( $this->sidebar)) : ?>
-	<div id="j-sidebar-container" class="span2">
-		<?php echo $this->sidebar; ?>
-	</div>
-	<div id="j-main-container" class="span10">
-<?php else : ?>
-	<div id="j-main-container">
-<?php endif; ?>
+	<div id="j-main-container" class="j-main-container">
 		<?php echo JLayoutHelper::render('joomla.searchtools.default', array('view' => $this)); ?>
 		<div class="clearfix"> </div>
 		<?php if (empty($this->items)) : ?>
-		<div class="alert alert-no-items">
+		<div class="alert alert-warning alert-no-items">
 			<?php echo JText::_('COM_FINDER_MAPS_NO_CONTENT'); ?>
 		</div>
 		<?php else : ?>
 		<table class="table table-striped">
 			<thead>
 				<tr>
-					<th width="1%" class="center nowrap">
+					<th width="1%" class="text-center nowrap">
 						<?php echo JHtml::_('grid.checkall'); ?>
 					</th>
-					<th width="1%" class="center nowrap">
+					<th width="1%" class="text-center nowrap">
 						<?php echo JHtml::_('searchtools.sort', 'JSTATUS', 'a.state', $listDirn, $listOrder); ?>
 					</th>
 					<th class="nowrap">
 						<?php echo JHtml::_('searchtools.sort', 'JGLOBAL_TITLE', 'd.branch_title', $listDirn, $listOrder); ?>
 					</th>
 					<?php if (!$branchFilter) : ?>
-					<th width="1%" class="nowrap center">
+					<th width="1%" class="nowrap text-center">
 						<?php echo JText::_('COM_FINDER_HEADING_CHILDREN'); ?>
 					</th>
 					<?php endif; ?>
-					<th width="1%" class="nowrap center">
+					<th width="1%" class="nowrap text-center">
 						<i class="icon-publish"></i>
-						<span class="hidden-phone"><?php echo JText::_('COM_FINDER_MAPS_COUNT_PUBLISHED_ITEMS'); ?></span>
+						<span class="hidden-sm-down"><?php echo JText::_('COM_FINDER_MAPS_COUNT_PUBLISHED_ITEMS'); ?></span>
 					</th>
-					<th width="1%" class="nowrap center">
+					<th width="1%" class="nowrap text-center">
 						<i class="icon-unpublish"></i>
-						<span class="hidden-phone"><?php echo JText::_('COM_FINDER_MAPS_COUNT_UNPUBLISHED_ITEMS'); ?></span>
+						<span class="hidden-sm-down"><?php echo JText::_('COM_FINDER_MAPS_COUNT_UNPUBLISHED_ITEMS'); ?></span>
 					</th>
 				</tr>
 			</thead>
@@ -91,10 +84,10 @@ JFactory::getDocument()->addScriptDeclaration('
 				<?php $canChange = JFactory::getUser()->authorise('core.manage', 'com_finder'); ?>
 				<?php foreach ($this->items as $i => $item) : ?>
 				<tr class="row<?php echo $i % 2; ?>">
-					<td class="center">
+					<td class="text-center">
 						<?php echo JHtml::_('grid.id', $i, $item->id); ?>
 					</td>
-					<td class="center nowrap">
+					<td class="text-center nowrap">
 						<?php echo JHtml::_('jgrid.published', $item->state, $i, 'maps.', $canChange, 'cb'); ?>
 					</td>
 					<td>
@@ -120,7 +113,7 @@ JFactory::getDocument()->addScriptDeclaration('
 					<?php endif; ?>
 					</td>
 					<?php if (!$branchFilter) : ?>
-					<td class="center btns">
+					<td class="text-center btns">
 					<?php if ((int) $item->num_children !== 0) : ?>
 						<a href="<?php echo JRoute::_('index.php?option=com_finder&view=maps&filter[branch]=' . $item->id); ?>">
 							<span class="badge <?php if ($item->num_children > 0) echo 'badge-info'; ?>"><?php echo $item->num_children; ?></span></a>
@@ -129,7 +122,7 @@ JFactory::getDocument()->addScriptDeclaration('
 					<?php endif; ?>
 					</td>
 					<?php endif; ?>
-					<td class="center btns">
+					<td class="text-center btns">
 					<?php if ((int) $item->num_children === 0) : ?>
 						<a class="badge <?php if ((int) $item->count_published > 0) echo 'badge-success'; ?>" title="<?php echo JText::_('COM_FINDER_MAPS_COUNT_PUBLISHED_ITEMS'); ?>" href="<?php echo JRoute::_('index.php?option=com_finder&view=index&filter[state]=1&filter[content_map]=' . $item->id); ?>">
 						<?php echo (int) $item->count_published; ?></a>
@@ -137,9 +130,9 @@ JFactory::getDocument()->addScriptDeclaration('
 						-
 					<?php endif; ?>
 					</td>
-					<td class="center btns">
+					<td class="text-center btns">
 					<?php if ((int) $item->num_children === 0) : ?>
-						<a class="badge <?php if ((int) $item->count_unpublished > 0) echo 'badge-important'; ?>" title="<?php echo JText::_('COM_FINDER_MAPS_COUNT_UNPUBLISHED_ITEMS'); ?>" href="<?php echo JRoute::_('index.php?option=com_finder&view=index&filter[state]=0&filter[content_map]=' . $item->id); ?>">
+						<a class="badge <?php if ((int) $item->count_unpublished > 0) echo 'badge-danger'; ?>" title="<?php echo JText::_('COM_FINDER_MAPS_COUNT_UNPUBLISHED_ITEMS'); ?>" href="<?php echo JRoute::_('index.php?option=com_finder&view=index&filter[state]=0&filter[content_map]=' . $item->id); ?>">
 						<?php echo (int) $item->count_unpublished; ?></a>
 					<?php else : ?>
 						-

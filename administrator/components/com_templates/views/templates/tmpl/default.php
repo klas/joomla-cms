@@ -14,7 +14,7 @@ JHtml::addIncludePath(JPATH_COMPONENT . '/helpers/html');
 
 JHtml::_('bootstrap.tooltip');
 JHtml::_('behavior.multiselect');
-JHtml::_('formbehavior.chosen', 'select');
+
 
 $user      = JFactory::getUser();
 $listOrder = $this->escape($this->state->get('list.ordering'));
@@ -22,32 +22,25 @@ $listDirn  = $this->escape($this->state->get('list.direction'));
 ?>
 
 <form action="<?php echo JRoute::_('index.php?option=com_templates&view=templates'); ?>" method="post" name="adminForm" id="adminForm">
-<?php if (!empty($this->sidebar)) : ?>
-	<div id="j-sidebar-container" class="span2">
-		<?php echo $this->sidebar; ?>
-	</div>
-	<div id="j-main-container" class="span10">
-<?php else : ?>
-	<div id="j-main-container">
-<?php endif; ?>
-		<?php echo JLayoutHelper::render('joomla.searchtools.default', array('view' => $this, 'options' => array('selectorFieldName' => 'client_id'))); ?>
-		<?php if ($this->total > 0) : ?>
+	<div id="j-main-container" class="j-main-container">
+	<?php echo JLayoutHelper::render('joomla.searchtools.default', array('view' => $this, 'options' => array('selectorFieldName' => 'client_id'))); ?>
+	<?php if ($this->total > 0) : ?>
 		<table class="table table-striped" id="template-mgr">
 			<thead>
 				<tr>
-					<th class="col1template hidden-phone" width="20%">
+					<th class="col1template hidden-sm-down" width="20%">
 						<?php echo JText::_('COM_TEMPLATES_HEADING_IMAGE'); ?>
 					</th>
 					<th width="30%">
 						<?php echo JHtml::_('searchtools.sort', 'COM_TEMPLATES_HEADING_TEMPLATE', 'a.element', $listDirn, $listOrder); ?>
 					</th>
-					<th width="10%" class="hidden-phone">
+					<th width="10%" class="hidden-sm-down text-center">
 						<?php echo JText::_('JVERSION'); ?>
 					</th>
-					<th width="15%" class="hidden-phone">
+					<th width="10%" class="hidden-sm-down text-center">
 						<?php echo JText::_('JDATE'); ?>
 					</th>
-					<th width="25%" class="hidden-phone" >
+					<th width="25%" class="hidden-sm-down text-center" >
 						<?php echo JText::_('JAUTHOR'); ?>
 					</th>
 				</tr>
@@ -62,7 +55,7 @@ $listDirn  = $this->escape($this->state->get('list.direction'));
 			<tbody>
 			<?php foreach ($this->items as $i => $item) : ?>
 				<tr class="row<?php echo $i % 2; ?>">
-					<td class="center hidden-phone">
+					<td class="text-center hidden-sm-down">
 						<?php echo JHtml::_('templates.thumb', $item->element, $item->client_id); ?>
 					</td>
 					<td class="template-name">
@@ -80,13 +73,13 @@ $listDirn  = $this->escape($this->state->get('list.direction'));
 						<?php endif; ?>
 						</div>
 					</td>
-					<td class="small hidden-phone">
+					<td class="small hidden-sm-down text-center">
 						<?php echo $this->escape($item->xmldata->get('version')); ?>
 					</td>
-					<td class="small hidden-phone">
+					<td class="small hidden-sm-down text-center">
 						<?php echo $this->escape($item->xmldata->get('creationDate')); ?>
 					</td>
-					<td class="hidden-phone">
+					<td class="hidden-sm-down text-center">
 						<?php if ($author = $item->xmldata->get('author')) : ?>
 							<div><?php echo $this->escape($author); ?></div>
 						<?php else : ?>

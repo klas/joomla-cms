@@ -33,8 +33,7 @@ $document = JFactory::getDocument();
 	<?php else : ?>
 	<li>
 		<small rel="popover" data-placement="left" title="<?php echo $name; ?>" data-content="<?php echo $desc; ?>"><?php echo $short_desc; ?></small>
-		<a href="<?php echo JRoute::_($link); ?>">
-			<strong><?php echo $name; ?></strong></a>
+		<a href="<?php echo JRoute::_($link); ?>"><strong><?php echo $name; ?></strong></a>
 	</li>
 	<?php endif; ?>
 <?php endforeach; ?>

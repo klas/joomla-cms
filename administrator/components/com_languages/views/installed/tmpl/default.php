@@ -12,7 +12,7 @@ defined('_JEXEC') or die;
 // Add specific helper files for html generation
 JHtml::addIncludePath(JPATH_COMPONENT . '/helpers/html');
 
-JHtml::_('formbehavior.chosen', 'select');
+
 JHtml::_('bootstrap.tooltip');
 
 $user      = JFactory::getUser();
@@ -20,16 +20,14 @@ $listOrder = $this->escape($this->state->get('list.ordering'));
 $listDirn  = $this->escape($this->state->get('list.direction'));
 ?>
 <form action="<?php echo JRoute::_('index.php?option=com_languages&view=installed'); ?>" method="post" id="adminForm" name="adminForm">
-<?php if (!empty($this->sidebar)) : ?>
-	<div id="j-sidebar-container" class="span2">
-		<?php echo $this->sidebar; ?>
-	</div>
-	<div id="j-main-container" class="span10">
-<?php else : ?>
-	<div id="j-main-container">
-<?php endif; ?>
+	<div id="j-main-container" class="j-main-container">
 		<?php echo JLayoutHelper::render('joomla.searchtools.default', array('view' => $this)); ?>
-		<?php if ($this->total > 0) : ?>
+		<div class="clearfix"></div>
+		<?php if (empty($this->rows)) : ?>
+		<div class="alert alert-warning alert-no-items">
+			<?php echo JText::_('JGLOBAL_NO_MATCHING_RESULTS'); ?>
+		</div>
+		<?php else : ?>
 		<table class="table table-striped">
 			<thead>
 				<tr>
@@ -42,25 +40,25 @@ $listDirn  = $this->escape($this->state->get('list.direction'));
 					<th width="15%" class="hidden-phone">
 						<?php echo JHtml::_('searchtools.sort', 'COM_LANGUAGES_HEADING_TITLE_NATIVE', 'nativeName', $listDirn, $listOrder); ?>
 					</th>
-					<th class="nowrap">
+					<th class="nowrap text-center">
 						<?php echo JHtml::_('searchtools.sort', 'COM_LANGUAGES_HEADING_LANG_TAG', 'language', $listDirn, $listOrder); ?>
 					</th>
-					<th class="nowrap center">
+					<th width="5%" class="nowrap text-center">
 						<?php echo JHtml::_('searchtools.sort', 'COM_LANGUAGES_HEADING_DEFAULT', 'published', $listDirn, $listOrder); ?>
 					</th>
-					<th class="nowrap center">
+					<th width="5%" class="nowrap text-center">
 						<?php echo JHtml::_('searchtools.sort', 'COM_LANGUAGES_HEADING_VERSION', 'version', $listDirn, $listOrder); ?>
 					</th>
-					<th class="hidden-phone">
+					<th width="10%" class="hidden-sm-down text-center">
 						<?php echo JHtml::_('searchtools.sort', 'COM_LANGUAGES_HEADING_DATE', 'creationDate', $listDirn, $listOrder); ?>
 					</th>
-					<th class="hidden-phone">
+					<th width="10%" class="hidden-sm-down text-center">
 						<?php echo JHtml::_('searchtools.sort', 'COM_LANGUAGES_HEADING_AUTHOR', 'author', $listDirn, $listOrder); ?>
 					</th>
-					<th class="hidden-phone hidden-tablet">
+					<th width="10%" class="hidden-sm-down text-center">
 						<?php echo JHtml::_('searchtools.sort', 'COM_LANGUAGES_HEADING_AUTHOR_EMAIL', 'authorEmail', $listDirn, $listOrder); ?>
 					</th>
-					<th class="nowrap hidden-phone">
+					<th width="5%" class="nowrap hidden-sm-down text-center">
 						<?php echo JHtml::_('searchtools.sort', 'JGRID_HEADING_ID', 'extension_id', $listDirn, $listOrder); ?>
 					</th>
 				</tr>
@@ -90,33 +88,33 @@ $listDirn  = $this->escape($this->state->get('list.direction'));
 							<?php echo $this->escape($row->name); ?>
 						</label>
 					</td>
-					<td class="hidden-phone">
+					<td class="hidden-md-down">
 						<?php echo $this->escape($row->nativeName); ?>
 					</td>
-					<td>
+					<td class="text-center">
 						<?php echo $this->escape($row->language); ?>
 					</td>
-					<td class="center">
+					<td class="text-center">
 						<?php echo JHtml::_('jgrid.isdefault', $row->published, $i, 'installed.', !$row->published && $canChange); ?>
 					</td>
-					<td class="center small">
+					<td class="text-center">
 					<?php // Display a Note if language pack version is not equal to Joomla version ?>
 					<?php if (substr($row->version, 0, 3) != $version::RELEASE || substr($row->version, 0, 5) != $currentShortVersion) : ?>
-						<span class="label label-warning hasTooltip" title="<?php echo JText::_('JGLOBAL_LANGUAGE_VERSION_NOT_PLATFORM'); ?>"><?php echo $row->version; ?></span>
+						<span class="badge badge-warning hasTooltip" title="<?php echo JText::_('JGLOBAL_LANGUAGE_VERSION_NOT_PLATFORM'); ?>"><?php echo $row->version; ?></span>
 					<?php else : ?>
-						<span class="label label-success"><?php echo $row->version; ?></span>
+						<span class="badge badge-success"><?php echo $row->version; ?></span>
 					<?php endif; ?>
 					</td>
-					<td class="hidden-phone">
+					<td class="hidden-sm-down text-center">
 						<?php echo $this->escape($row->creationDate); ?>
 					</td>
-					<td class="hidden-phone">
+					<td class="hidden-sm-down text-center">
 						<?php echo $this->escape($row->author); ?>
 					</td>
-					<td class="hidden-phone hidden-tablet">
+					<td class="hidden-sm-down text-center">
 						<?php echo JStringPunycode::emailToUTF8($this->escape($row->authorEmail)); ?>
 					</td>
-					<td class="hidden-phone">
+					<td class="hidden-sm-down text-center">
 						<?php echo $this->escape($row->extension_id); ?>
 					</td>
 				</tr>

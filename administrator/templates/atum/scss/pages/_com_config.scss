@@ -1,0 +1,12 @@
+// com_config
+
+.com_config {
+  .content {
+    background-color: transparent;
+  }
+  [class^='col-'] {
+    > fieldset {
+      margin-bottom: 2rem;
+    }
+  }
+}

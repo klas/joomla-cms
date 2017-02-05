@@ -11,21 +11,14 @@ defined('_JEXEC') or die;
 
 JHtml::_('behavior.multiselect');
 JHtml::_('bootstrap.tooltip');
-JHtml::_('formbehavior.chosen', 'select');
+
 
 $listOrder = $this->escape($this->state->get('list.ordering'));
 $listDirn  = $this->escape($this->state->get('list.direction'));
 ?>
 <div id="installer-discover" class="clearfix">
 	<form action="<?php echo JRoute::_('index.php?option=com_installer&view=discover'); ?>" method="post" name="adminForm" id="adminForm">
-		<?php if (!empty( $this->sidebar)) : ?>
-		<div id="j-sidebar-container" class="span2">
-			<?php echo $this->sidebar; ?>
-		</div>
-		<div id="j-main-container" class="span10">
-		<?php else : ?>
-		<div id="j-main-container">
-		<?php endif; ?>
+		<div id="j-main-container" class="j-main-container">
 			<?php if ($this->showMessage) : ?>
 				<?php echo $this->loadTemplate('message'); ?>
 			<?php endif; ?>
@@ -35,14 +28,14 @@ $listDirn  = $this->escape($this->state->get('list.direction'));
 			<?php echo JLayoutHelper::render('joomla.searchtools.default', array('view' => $this)); ?>
 			<div class="clearfix"></div>
 			<?php if (empty($this->items)) : ?>
-			<div class="alert alert-no-items">
+			<div class="alert alert-warning alert-no-items">
 				<?php echo JText::_('JGLOBAL_NO_MATCHING_RESULTS'); ?>
 			</div>
 			<?php else : ?>
 			<table class="table table-striped">
 				<thead>
 					<tr>
-						<th width="1%" class="nowrap center">
+						<th width="1%" class="nowrap text-center">
 							<?php echo JHtml::_('grid.checkall'); ?>
 						</th>
 						<th class="nowrap">
@@ -54,19 +47,19 @@ $listDirn  = $this->escape($this->state->get('list.direction'));
 						<th class="nowrap">
 							<?php echo JHtml::_('searchtools.sort', 'COM_INSTALLER_HEADING_TYPE', 'type_translated', $listDirn, $listOrder); ?>
 						</th>
-						<th width="10%" class="hidden-phone">
+						<th width="10%" class="hidden-sm-down">
 							<?php echo JText::_('JVERSION'); ?>
 						</th>
-						<th width="10%" class="hidden-phone hidden-tablet">
+						<th width="10%" class="hidden-sm-down">
 							<?php echo JText::_('JDATE'); ?>
 						</th>
-						<th width="15%" class="hidden-phone hidden-tablet">
+						<th width="15%" class="hidden-sm-down">
 							<?php echo JText::_('JAUTHOR'); ?>
 						</th>
-						<th class="nowrap hidden-phone">
+						<th class="nowrap hidden-sm-down">
 							<?php echo JHtml::_('searchtools.sort', 'COM_INSTALLER_HEADING_FOLDER', 'folder_translated', $listDirn, $listOrder); ?>
 						</th>
-						<th width="1%" class="nowrap hidden-phone">
+						<th width="1%" class="nowrap hidden-sm-down">
 							<?php echo JHtml::_('searchtools.sort', 'JGRID_HEADING_ID', 'extension_id', $listDirn, $listOrder); ?>
 						</th>
 					</tr>
@@ -79,7 +72,7 @@ $listDirn  = $this->escape($this->state->get('list.direction'));
 				<tbody>
 				<?php foreach ($this->items as $i => $item) : ?>
 					<tr class="row<?php echo $i % 2; ?>">
-						<td class="center">
+						<td class="text-center">
 							<?php echo JHtml::_('grid.id', $i, $item->extension_id); ?>
 						</td>
 						<td>
@@ -93,21 +86,21 @@ $listDirn  = $this->escape($this->state->get('list.direction'));
 						<td>
 							<?php echo $item->type_translated; ?>
 						</td>
-						<td class="hidden-phone">
+						<td class="hidden-sm-down">
 							<?php echo @$item->version != '' ? $item->version : '&#160;'; ?>
 						</td>
-						<td class="hidden-phone hidden-tablet">
+						<td class="hidden-sm-down">
 							<?php echo @$item->creationDate != '' ? $item->creationDate : '&#160;'; ?>
 						</td>
-						<td class="hidden-phone hidden-tablet">
+						<td class="hidden-sm-down">
 							<span class="editlinktip hasTooltip" title="<?php echo JHtml::tooltipText(JText::_('COM_INSTALLER_AUTHOR_INFORMATION'), $item->author_info, 0); ?>">
 								<?php echo @$item->author != '' ? $item->author : '&#160;'; ?>
 							</span>
 						</td>
-						<td class="hidden-phone">
+						<td class="hidden-sm-down">
 							<?php echo $item->folder_translated; ?>
 						</td>
-						<td class="hidden-phone">
+						<td class="hidden-sm-down">
 							<?php echo $item->extension_id; ?>
 						</td>
 					</tr>

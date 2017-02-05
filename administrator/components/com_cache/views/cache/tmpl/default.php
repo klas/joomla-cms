@@ -9,36 +9,29 @@
 
 defined('_JEXEC') or die;
 
-JHtml::_('formbehavior.chosen', 'select');
+
 JHtml::_('bootstrap.tooltip');
 
 $listOrder = $this->escape($this->state->get('list.ordering'));
 $listDirn  = $this->escape($this->state->get('list.direction'));
 ?>
 <form action="<?php echo JRoute::_('index.php?option=com_cache'); ?>" method="post" name="adminForm" id="adminForm">
-	<?php if (!empty($this->sidebar)) : ?>
-	<div id="j-sidebar-container" class="span2">
-		<?php echo $this->sidebar; ?>
-	</div>
-	<div id="j-main-container" class="span10">
-	<?php else : ?>
-	<div id="j-main-container">
-	<?php endif; ?>
+	<div id="j-main-container" class="j-main-container">
 		<?php echo JLayoutHelper::render('joomla.searchtools.default', array('view' => $this)); ?>
-		<?php if ($this->total > 0) : ?>
+		<?php if (count($this->data) > 0) : ?>
 		<table class="table table-striped">
 			<thead>
 				<tr>
-					<th width="1%" class="nowrap center">
+					<th width="1%" class="nowrap text-center">
 						<?php echo JHtml::_('grid.checkall'); ?>
 					</th>
 					<th class="title nowrap">
 						<?php echo JHtml::_('searchtools.sort', 'COM_CACHE_GROUP', 'group', $listDirn, $listOrder); ?>
 					</th>
-					<th width="5%" class="nowrap">
+					<th width="10%" class="nowrap text-center">
 						<?php echo JHtml::_('searchtools.sort', 'COM_CACHE_NUMBER_OF_FILES', 'count', $listDirn, $listOrder); ?>
 					</th>
-					<th width="10%" class="nowrap">
+					<th width="10%" class="nowrap text-center">
 						<?php echo JHtml::_('searchtools.sort', 'COM_CACHE_SIZE', 'size', $listDirn, $listOrder); ?>
 					</th>
 				</tr>
@@ -63,10 +56,10 @@ $listDirn  = $this->escape($this->state->get('list.direction'));
 								<strong><?php echo $item->group; ?></strong>
 							</label>
 						</td>
-						<td>
+						<td class="text-center">
 							<?php echo $item->count; ?>
 						</td>
-						<td>
+						<td class="text-center">
 							<?php echo JHtml::_('number.bytes', $item->size*1024); ?>
 						</td>
 					</tr>

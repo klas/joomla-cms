@@ -44,13 +44,9 @@ extract($displayData);
  * @var   string   $accept          File types that are accepted.
  */
 
-// Including fallback code for HTML5 non supported browsers.
-JHtml::_('jquery.framework');
-JHtml::_('script', 'system/html5fallback.js', array('version' => 'auto', 'relative' => true));
-
 // Initialize some field attributes.
 $attributes = array(
-	$class ? 'class="' . $class . '"' : '',
+	$class ? 'class="form-control ' . $class . '"' : 'class="form-control"',
 	$disabled ? 'disabled' : '',
 	$readonly ? 'readonly' : '',
 	!empty($onchange) ? 'onchange="' . $onchange . '"' : '',

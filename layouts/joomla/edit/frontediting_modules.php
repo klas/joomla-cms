@@ -65,5 +65,5 @@ if ($count)
 	JHtml::_('bootstrap.popover');
 
 	JHtml::_('stylesheet', 'system/frontediting.css', array('version' => 'auto', 'relative' => true));
-	JHtml::_('script', 'system/frontediting.js', array('version' => 'auto', 'relative' => true));
+	JHtml::_('script', 'system/frontediting.min.js', array('version' => 'auto', 'relative' => true));
 }

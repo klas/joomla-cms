@@ -10,7 +10,6 @@
 defined('_JEXEC') or die;
 
 JHtml::_('behavior.multiselect');
-JHtml::_('formbehavior.chosen', 'select');
 JHtml::_('bootstrap.tooltip');
 
 $listOrder = $this->escape($this->state->get('list.ordering'));
@@ -18,18 +17,11 @@ $listDirn  = $this->escape($this->state->get('list.direction'));
 ?>
 <div id="installer-languages" class="clearfix">
 	<form action="<?php echo JRoute::_('index.php?option=com_installer&view=languages'); ?>" method="post" name="adminForm" id="adminForm">
-	<?php if (!empty( $this->sidebar)) : ?>
-		<div id="j-sidebar-container" class="span2">
-			<?php echo $this->sidebar; ?>
-		</div>
-		<div id="j-main-container" class="span10">
-	<?php else : ?>
-		<div id="j-main-container">
-	<?php endif; ?>
+		<div id="j-main-container" class="j-main-container">
 			<?php echo JLayoutHelper::render('joomla.searchtools.default', array('view' => $this, 'options' => array('filterButton' => false))); ?>
 			<div class="clearfix"></div>
 			<?php if (empty($this->items)) : ?>
-			<div class="alert alert-no-items">
+			<div class="alert alert-warning alert-no-items">
 				<?php echo JText::_('JGLOBAL_NO_MATCHING_RESULTS'); ?>
 			</div>
 			<?php else : ?>
@@ -40,13 +32,13 @@ $listDirn  = $this->escape($this->state->get('list.direction'));
 						<th class="nowrap">
 							<?php echo JHtml::_('searchtools.sort', 'JGRID_HEADING_LANGUAGE', 'name', $listDirn, $listOrder); ?>
 						</th>
-						<th width="1%" class="nowrap">
+						<th width="10%" class="nowrap text-center">
 							<?php echo JHtml::_('searchtools.sort', 'COM_INSTALLER_HEADING_LANGUAGE_TAG', 'element', $listDirn, $listOrder); ?>
 						</th>
-						<th width="5%" class="center">
+						<th width="15%" class="text-center">
 							<?php echo JText::_('JVERSION'); ?>
 						</th>
-						<th width="40%" class="nowrap hidden-phone">
+						<th width="35%" class="nowrap hidden-sm-down">
 							<?php echo JText::_('COM_INSTALLER_HEADING_DETAILS_URL'); ?>
 						</th>
 					</tr>
@@ -71,25 +63,25 @@ $listDirn  = $this->escape($this->state->get('list.direction'));
 						<td>
 							<?php $buttonText = (isset($this->installedLang[0][$language->code]) || isset($this->installedLang[1][$language->code])) ? 'REINSTALL' : 'INSTALL'; ?>
 							<?php $onclick = 'document.getElementById(\'install_url\').value = \'' . $language->detailsurl . '\'; Joomla.submitbutton(\'install.install\');'; ?>
-							<input type="button" class="btn btn-small" value="<?php echo JText::_('COM_INSTALLER_' . $buttonText . '_BUTTON'); ?>" onclick="<?php echo $onclick; ?>" />
+							<input type="button" class="btn btn-secondary btn-sm" value="<?php echo JText::_('COM_INSTALLER_' . $buttonText . '_BUTTON'); ?>" onclick="<?php echo $onclick; ?>" />
 						</td>
 						<td>
 							<label for="cb<?php echo $i; ?>">
 								<?php echo $language->name; ?>
 							</label>
 						</td>
-						<td>
+						<td class="text-center">
 							<?php echo $language->code; ?>
 						</td>
-						<td class="center">
+						<td class="text-center">
 								<?php // Display a Note if language pack version is not equal to Joomla version ?>
 								<?php if (substr($language->version, 0, 3) != $version::RELEASE || substr($language->version, 0, 5) != $currentShortVersion) : ?>
-									<span class="label label-warning hasTooltip" title="<?php echo JText::_('JGLOBAL_LANGUAGE_VERSION_NOT_PLATFORM'); ?>"><?php echo $language->version; ?></span>
+									<span class="badge badge-warning hasTooltip" title="<?php echo JText::_('JGLOBAL_LANGUAGE_VERSION_NOT_PLATFORM'); ?>"><?php echo $language->version; ?></span>
 								<?php else : ?>
-									<span class="label label-success"><?php echo $language->version; ?></span>
+									<span class="badge badge-success"><?php echo $language->version; ?></span>
 								<?php endif; ?>
 						</td>
-						<td class="small hidden-phone">
+						<td class="small hidden-sm-down">
 							<a href="<?php echo $language->detailsurl; ?>" target="_blank"><?php echo $language->detailsurl; ?></a>
 						</td>
 					</tr>

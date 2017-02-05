@@ -10,7 +10,7 @@
 defined('_JEXEC') or die;
 
 JHtml::_('behavior.multiselect');
-JHtml::_('formbehavior.chosen', 'select');
+
 JHtml::_('bootstrap.tooltip');
 
 $listOrder = $this->escape($this->state->get('list.ordering'));
@@ -18,46 +18,39 @@ $listDirn  = $this->escape($this->state->get('list.direction'));
 ?>
 <div id="installer-manage" class="clearfix">
 	<form action="<?php echo JRoute::_('index.php?option=com_installer&view=updatesites'); ?>" method="post" name="adminForm" id="adminForm">
-		<?php if (!empty( $this->sidebar)) : ?>
-		<div id="j-sidebar-container" class="span2">
-			<?php echo $this->sidebar; ?>
-		</div>
-		<div id="j-main-container" class="span10">
-		<?php else : ?>
-		<div id="j-main-container">
-		<?php endif; ?>
+		<div id="j-main-container" class="j-main-container">
 			<?php echo JLayoutHelper::render('joomla.searchtools.default', array('view' => $this)); ?>
 			<div class="clearfix"></div>
 			<?php if (empty($this->items)) : ?>
-			<div class="alert alert-no-items">
+			<div class="alert alert-warning alert-no-items">
 				<?php echo JText::_('JGLOBAL_NO_MATCHING_RESULTS'); ?>
 			</div>
 			<?php else : ?>
 			<table class="table table-striped">
 				<thead>
 					<tr>
-						<th width="1%" class="center">
+						<th width="1%" class="text-center">
 							<?php echo JHtml::_('grid.checkall'); ?>
 						</th>
-						<th width="1%" class="nowrap center">
+						<th width="1%" class="nowrap text-center">
 							<?php echo JHtml::_('searchtools.sort', 'JSTATUS', 'enabled', $listDirn, $listOrder); ?>
 						</th>
 						<th class="nowrap">
 							<?php echo JHtml::_('searchtools.sort', 'COM_INSTALLER_HEADING_UPDATESITE_NAME', 'update_site_name', $listDirn, $listOrder); ?>
 						</th>
-						<th class="nowrap hidden-phone">
+						<th width="20%" class="nowrap hidden-sm-down text-center">
 							<?php echo JHtml::_('searchtools.sort', 'COM_INSTALLER_HEADING_NAME', 'name', $listDirn, $listOrder); ?>
 						</th>
-						<th class="hidden-phone hidden-tablet">
+						<th width="10%" class="hidden-sm-down text-center">
 							<?php echo JHtml::_('searchtools.sort', 'COM_INSTALLER_HEADING_LOCATION', 'client_translated', $listDirn, $listOrder); ?>
 						</th>
-						<th class="hidden-phone">
+						<th width="10%" class="hidden-sm-down text-center">
 							<?php echo JHtml::_('searchtools.sort', 'COM_INSTALLER_HEADING_TYPE', 'type_translated', $listDirn, $listOrder); ?>
 						</th>
-						<th class="hidden-phone hidden-tablet">
+						<th width="10%" class="hidden-sm-down text-center">
 							<?php echo JHtml::_('searchtools.sort', 'COM_INSTALLER_HEADING_FOLDER', 'folder_translated', $listDirn, $listOrder); ?>
 						</th>
-						<th width="1%" class="nowrap hidden-phone">
+						<th width="5%" class="nowrap hidden-sm-down text-center">
 							<?php echo JHtml::_('searchtools.sort', 'JGRID_HEADING_ID', 'update_site_id', $listDirn, $listOrder); ?>
 						</th>
 					</tr>
@@ -72,10 +65,10 @@ $listDirn  = $this->escape($this->state->get('list.direction'));
 				<tbody>
 				<?php foreach ($this->items as $i => $item) : ?>
 					<tr class="row<?php echo $i % 2; if ($item->enabled == 2) echo ' protected'; ?>">
-						<td class="center">
+						<td class="text-center">
 							<?php echo JHtml::_('grid.id', $i, $item->update_site_id); ?>
 						</td>
-						<td class="center">
+						<td class="text-center">
 							<?php if (!$item->element) : ?>
 								<strong>X</strong>
 							<?php else : ?>
@@ -91,21 +84,21 @@ $listDirn  = $this->escape($this->state->get('list.direction'));
 								</span>
 							</label>
 						</td>
-						<td class="hidden-phone">
+						<td class="hidden-sm-down text-center">
 							<span class="bold hasTooltip" title="<?php echo JHtml::tooltipText($item->name, $item->description, 0); ?>">
 								<?php echo $item->name; ?>
 							</span>
 						</td>
-						<td class="hidden-phone hidden-tablet">
+						<td class="hidden-sm-down text-center">
 							<?php echo $item->client_translated; ?>
 						</td>
-						<td class="hidden-phone">
+						<td class="hidden-sm-down text-center">
 							<?php echo $item->type_translated; ?>
 						</td>
-						<td class="hidden-phone hidden-tablet">
+						<td class="hidden-sm-down text-center">
 							<?php echo $item->folder_translated; ?>
 						</td>
-						<td class="hidden-phone">
+						<td class="hidden-sm-down text-center">
 							<?php echo $item->update_site_id; ?>
 						</td>
 					</tr>
