@@ -13,6 +13,7 @@ defined('JPATH_PLATFORM') or die;
  * JAccessRule class.
  *
  * @since  11.4
+ * @deprecated No replacement, to be removed in 4.1.
  */
 class JAccessRule
 {
