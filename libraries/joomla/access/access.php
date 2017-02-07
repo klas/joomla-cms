@@ -268,7 +268,8 @@ class JAccess
 	 */
 	public static function check($userId, $action, $asset = 1)
 	{
-		$access = JAuthorize::getInstance('JoomlaLegacy')->set('assetId', $asset);
+		$access = JAuthorize::getInstance('JoomlaLegacy');
+		$access->assetId = $asset;
 
 		return $access->check($userId, $action, $asset, false);
 	}
@@ -287,7 +288,8 @@ class JAccess
 	 */
 	public static function checkGroup($groupId, $action, $asset = 1)
 	{
-		$access = JAuthorize::getInstance('JoomlaLegacy')->set('assetId', $asset);
+		$access = JAuthorize::getInstance('JoomlaLegacy');
+		$access->assetId = $asset;
 
 		return $access->check($groupId, $action, $asset, true);
 	}
@@ -308,7 +310,8 @@ class JAccess
 	 */
 	public static function getAssetRules($asset, $recursive = false, $recursiveParentAsset = false)
 	{
-		$access = JAuthorize::getInstance('JoomlaLegacy')->set('assetId', $asset);
+		$access = JAuthorize::getInstance('JoomlaLegacy');
+		$access->assetId = $asset;
 
 		return $access->getRules($recursive, null, null);
 	}
