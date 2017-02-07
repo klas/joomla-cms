@@ -140,18 +140,7 @@ class JAccess
 	 */
 	public static function getActionsFromFile($file, $xpath = "/access/section[@name='component']/")
 	{
-		if (!is_file($file) || !is_readable($file))
-		{
-			// If unable to find the file return false.
-			return false;
-		}
-		else
-		{
-			// Else return the actions from the xml.
-			$xml = simplexml_load_file($file);
-
-			return self::getActionsFromData($xml, $xpath);
-		}
+		return JAuthorizeHelper::getActionsFromFile($file, $xpath);
 	}
 
 	/**
@@ -166,53 +155,7 @@ class JAccess
 	 */
 	public static function getActionsFromData($data, $xpath = "/access/section[@name='component']/")
 	{
-		// If the data to load isn't already an XML element or string return false.
-		if ((!($data instanceof SimpleXMLElement)) && (!is_string($data)))
-		{
-			return false;
-		}
-
-		// Attempt to load the XML if a string.
-		if (is_string($data))
-		{
-			try
-			{
-				$data = new SimpleXMLElement($data);
-			}
-			catch (Exception $e)
-			{
-				return false;
-			}
-
-			// Make sure the XML loaded correctly.
-			if (!$data)
-			{
-				return false;
-			}
-		}
-
-		// Initialise the actions array
-		$actions = array();
-
-		// Get the elements from the xpath
-		$elements = $data->xpath($xpath . 'action[@name][@title][@description]');
-
-		// If there some elements, analyse them
-		if (!empty($elements))
-		{
-			foreach ($elements as $action)
-			{
-				// Add the action to the actions array
-				$actions[] = (object) array(
-					'name' => (string) $action['name'],
-					'title' => (string) $action['title'],
-					'description' => (string) $action['description']
-				);
-			}
-		}
-
-		// Finally return the actions array
-		return $actions;
+		JAuthorizeHelper::getActionsFromData($data, $xpath);
 	}
 
 	/**
@@ -226,32 +169,7 @@ class JAccess
 	 */
 	public static function getExtensionNameFromAsset($asset)
 	{
-		static $loaded = array();
-
-		if (!isset($loaded[$asset]))
-		{
-			if (is_numeric($asset))
-			{
-				$table = JTable::getInstance('Asset');
-				$table->load($asset);
-				$assetName = $table->name;
-			}
-			else
-			{
-				$assetName = $asset;
-			}
-
-			$firstDot = strpos($assetName, '.');
-
-			if ($assetName !== 'root.1' && $firstDot !== false)
-			{
-				$assetName = substr($assetName, 0, $firstDot);
-			}
-
-			$loaded[$asset] = $assetName;
-		}
-
-		return $loaded[$asset];
+		return JAuthorizeHelper::getExtensionNameFromAsset($asset);
 	}
 
 	/**
