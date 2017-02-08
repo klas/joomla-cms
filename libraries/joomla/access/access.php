@@ -189,7 +189,7 @@ class JAccess
 		$access = JAuthorize::getInstance('JoomlaLegacy');
 		$access->assetId = $asset;
 
-		return $access->check($userId, $action, $asset, false);
+		return $access->check($userId, $action, $asset, 'user');
 	}
 
 	/**
@@ -209,7 +209,7 @@ class JAccess
 		$access = JAuthorize::getInstance('JoomlaLegacy');
 		$access->assetId = $asset;
 
-		return $access->check($groupId, $action, $asset, true);
+		return $access->check($groupId, $action, $asset, 'group');
 	}
 
 	/**
