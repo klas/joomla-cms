@@ -155,7 +155,7 @@ class JAccess
 	 */
 	public static function getActionsFromData($data, $xpath = "/access/section[@name='component']/")
 	{
-		JAuthorizeHelper::getActionsFromData($data, $xpath);
+		return JAuthorizeHelper::getActionsFromData($data, $xpath);
 	}
 
 	/**
@@ -186,7 +186,7 @@ class JAccess
 	 */
 	public static function check($userId, $action, $asset = 1)
 	{
-		$access = JAuthorize::getInstance('JoomlaLegacy');
+		$access = JAuthorize::getInstance('Joomlalegacy');
 		$access->assetId = $asset;
 
 		return $access->check($userId, $action, $asset, 'user');
@@ -206,7 +206,7 @@ class JAccess
 	 */
 	public static function checkGroup($groupId, $action, $asset = 1)
 	{
-		$access = JAuthorize::getInstance('JoomlaLegacy');
+		$access = JAuthorize::getInstance('Joomlalegacy');
 		$access->assetId = $asset;
 
 		return $access->check($groupId, $action, $asset, 'group');
@@ -228,7 +228,7 @@ class JAccess
 	 */
 	public static function getAssetRules($asset, $recursive = false, $recursiveParentAsset = false)
 	{
-		$access = JAuthorize::getInstance('JoomlaLegacy');
+		$access = JAuthorize::getInstance('Joomlalegacy');
 		$access->assetId = $asset;
 
 		return $access->getRules($recursive, null, null);
@@ -298,5 +298,4 @@ class JAccess
 	{
 		return JUserHelper::getGroupPath($groupId);
 	}
-
 }
