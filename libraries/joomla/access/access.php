@@ -34,7 +34,9 @@ class JAccess
 	public static function clearStatics()
 	{
 		self::$viewLevels = array();
-		JAuthorizeImplementationJoomlaLegacy::clearStatics();
+
+		$access = JAuthorize::getInstance('Joomlalegacy');
+		$access->clearStatics();
 	}
 
 	/**
@@ -189,7 +191,7 @@ class JAccess
 		$access = JAuthorize::getInstance('Joomlalegacy');
 		$access->assetId = $asset;
 
-		return $access->check($userId, $action, $asset, 'user');
+		return $access->check($userId, $asset, $action, 'user');
 	}
 
 	/**
@@ -209,7 +211,7 @@ class JAccess
 		$access = JAuthorize::getInstance('Joomlalegacy');
 		$access->assetId = $asset;
 
-		return $access->check($groupId, $action, $asset, 'group');
+		return $access->check($groupId, $asset, $action, 'group');
 	}
 
 	/**
