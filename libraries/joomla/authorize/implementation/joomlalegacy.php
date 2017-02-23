@@ -34,11 +34,7 @@ class JAuthorizeImplementationJoomlalegacy extends JAuthorizeImplementationJooml
 	 */
 	protected static $permCache = array();
 
-	const IMPLEMENTATION = 'JoomlaLegacy';
-
 	const APPENDSUPPORT = false;
-
-	const OPTIMIZELIMIT = 100;
 
 
 	/**
@@ -255,7 +251,7 @@ class JAuthorizeImplementationJoomlalegacy extends JAuthorizeImplementationJooml
 		$assetid = $this->assetId;
 		static $overLimit = false;
 
-		if ($overLimit || sizeof($this->assetId) > static::OPTIMIZELIMIT)
+		if ($overLimit || sizeof($this->assetId) > $this->optimizeLimit)
 		{
 			$assetid = array();
 			$overLimit = true;
@@ -280,7 +276,7 @@ class JAuthorizeImplementationJoomlalegacy extends JAuthorizeImplementationJooml
 	private function getAssetPermissions($recursive = false, $groups = array(), $action = null)
 	{
 
-		if ( sizeof($this->assetId) > static::OPTIMIZELIMIT)
+		if ( sizeof($this->assetId) > $this->optimizeLimit)
 		{
 			$useIds = false;
 			$forceIndex = $straightJoin = '';
@@ -301,7 +297,6 @@ class JAuthorizeImplementationJoomlalegacy extends JAuthorizeImplementationJooml
 		if ($recursive)
 		{
 			$query->join('', $this->db->qn('#__assets', 'b') . $forceIndex . ' ON (a.lft BETWEEN b.lft AND b.rgt) ');
-			//$query->order('a.lft');
 
 			$prefix = 'b';
 		}
@@ -343,7 +338,7 @@ class JAuthorizeImplementationJoomlalegacy extends JAuthorizeImplementationJooml
 
 		if (isset($action))
 		{
-			$query->where('p.permission = ' . $this->db->quote((string) $action)); // . 'AND p.value=1' );
+			$query->where('p.permission = ' . $this->db->quote((string) $action));
 		}
 		else
 		{
