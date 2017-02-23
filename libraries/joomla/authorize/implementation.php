@@ -45,7 +45,9 @@ abstract class JAuthorizeImplementation
 		{
 			case 'authorizationMatrix':
 				$class = get_class($this);
-				return isset(static::$authorizationMatrix[$class]) ? static::$authorizationMatrix[$class] : array();
+				$matryx = JAuthorizeImplementation::getMatrix();
+
+				return isset($matryx[$class]) ? $matryx[$class] : array();
 				break;
 
 			case 'appendsupport':
@@ -56,6 +58,11 @@ abstract class JAuthorizeImplementation
 				return isset($this->$key) ? $this->$key : null;
 				break;
 		}
+	}
+
+	protected static function getMatrix()
+	{
+		return self::$authorizationMatrix;
 	}
 
 	/**
@@ -74,7 +81,9 @@ abstract class JAuthorizeImplementation
 		{
 			case 'authorizationMatrix':
 				$class = get_class($this);
-				self::$authorizationMatrix[$class] = $value;
+				$matryx = JAuthorizeImplementation::getMatrix();
+				$matryx[$class] = $value;
+				JAuthorizeImplementation::setMatrix($matryx);
 				break;
 
 			case 'db':
@@ -93,6 +102,11 @@ abstract class JAuthorizeImplementation
 		}
 
 		return $this;
+	}
+
+	protected static function setMatrix($value)
+	{
+		self::$authorizationMatrix = $value;
 	}
 
 

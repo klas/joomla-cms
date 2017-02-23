@@ -181,7 +181,7 @@ class JAccess
 	 * @param   string   $action  The name of the action to authorise.
 	 * @param   mixed    $asset   Integer asset id or the name of the asset as a string.  Defaults to the global asset node.
 	 *
-	 * @return  boolean  True if authorised.
+	 * @return  mixed  True if authorised and assetId is numeric/named. An array of boolean values if assetId is array.
 	 *
 	 * @since   11.1
 	 * @deprecated  Use JAuthorize->check() instead

@@ -38,6 +38,9 @@ class JAuthorizeImplementationJoomlalegacy extends JAuthorizeImplementationJooml
 
 	const APPENDSUPPORT = false;
 
+	const OPTIMIZELIMIT = 100;
+
+
 	/**
 	 * Instantiate the access class
 	 *
@@ -100,18 +103,18 @@ class JAuthorizeImplementationJoomlalegacy extends JAuthorizeImplementationJooml
 	 * @param   integer  $actor    Id of the user/group for which to check authorisation.
 	 * @param   mixed    $target  Integer asset id or the name of the asset as a string or array with this values.  Defaults to the global asset node.
 	 * @param   string   $action  The name of the action to authorise.
-	 * @param   string   $actorType   Optional type of actor. User or group.
+	 * @param   string   $actorType   Type of actor. User or group.
 	 *
-	 * @return  boolean  True if authorised.
+	 * @return  mixed  True if authorised and assetId is numeric/named. An array of boolean values if assetId is array.
 	 *
 	 * @since   4.0
 	 */
-	public function check($actor, $target, $action, $actorType = null)
+	public function check($actor, $target, $action, $actorType)
 	{
 		// Sanitise inputs.
 		$id = (int) $actor;
 
-		if ($actorType === null || $actorType == 'group')
+		if ($actorType == 'group')
 		{
 			$identities = JUserHelper::getGroupPath($id);
 		}
@@ -124,17 +127,36 @@ class JAuthorizeImplementationJoomlalegacy extends JAuthorizeImplementationJooml
 
 		$action = $this->cleanAction($action);
 
-		// Clean and filter
-		if (isset($target))
-		{
-			$this->assetId = $target;
-		}
+		// Clean and filter - run trough setter
+		$this->assetId = $target;
+
+		// Copy value as empty does not fire getter
+		$target = $this->assetId;
 
 		// Default to the root asset node.
-		if (empty($this->assetId))
+		if (empty($target))
 		{
 			$assets = JTable::getInstance('Asset', 'JTable', array('dbo' => $this->db));
 			$this->assetId = $assets->getRootId();
+		}
+
+		$target = (array) $target;
+
+		if (is_array($this->assetId_))
+		{
+			$result = array();
+			$rules = $this->getRules(true, null, $action);
+
+			foreach ($this->assetId_ AS $assetId)
+			{
+				/*if (empty(self::$assetRules[$assetId]))
+				{
+					self::$assetRules[$assetId] =
+				}*/
+				$result[$assetId] = $rules->allow($action, $identities);
+			}
+
+			return $result;
 		}
 
 		// Get the rules for the asset recursively to root if not already retrieved.
@@ -216,7 +238,7 @@ class JAuthorizeImplementationJoomlalegacy extends JAuthorizeImplementationJooml
 	private function getCacheId($recursive, $groups, &$action)
 	{
 		// We are optimizing only view for frontend, otherwise 1 query for all actions is faster globaly due to cache
-		if ($action == 'core.view')
+		/*if ($action == 'core.view')
 		{
 			// If we have all actions query already take data from cache
 			if (isset(self::$permCache[md5(serialize(array($this->assetId, $recursive, $groups, null)))]))
@@ -228,9 +250,18 @@ class JAuthorizeImplementationJoomlalegacy extends JAuthorizeImplementationJooml
 		{
 			// Don't use action in cacheId calc and query - faster with multiple actions
 			$action = null;
+		}*/
+
+		$assetid = $this->assetId;
+		static $overLimit = false;
+
+		if ($overLimit || sizeof($this->assetId) > static::OPTIMIZELIMIT)
+		{
+			$assetid = array();
+			$overLimit = true;
 		}
 
-		$cacheId = md5(serialize(array($this->assetId, $recursive, $groups, $action)));
+		$cacheId = md5(serialize(array($assetid, $recursive, $groups, $action)));
 
 		return $cacheId;
 	}
@@ -246,8 +277,21 @@ class JAuthorizeImplementationJoomlalegacy extends JAuthorizeImplementationJooml
 	 *
 	 * @return mixed   Db query result - the return value or null if the query failed.
 	 */
-	public function getAssetPermissions($recursive = false, $groups = array(), $action = null)
+	private function getAssetPermissions($recursive = false, $groups = array(), $action = null)
 	{
+
+		if ( sizeof($this->assetId) > static::OPTIMIZELIMIT)
+		{
+			$useIds = false;
+			$forceIndex = $straightJoin = '';
+		}
+		else
+		{
+			$useIds = true;
+			$forceIndex = 'FORCE INDEX FOR JOIN (`lft_rgt_id`)';
+			$straightJoin = 'STRAIGHT_JOIN DISTINCT ';
+		}
+
 		$query = $this->db->getQuery(true);
 
 		// Build the database query to get the rules for the asset.
@@ -256,9 +300,9 @@ class JAuthorizeImplementationJoomlalegacy extends JAuthorizeImplementationJooml
 		// If we want the rules cascading up to the global asset node we need a self-join.
 		if ($recursive)
 		{
-			$query->from($this->db->qn('#__assets', 'b'));
-			$query->where('a.lft BETWEEN b.lft AND b.rgt');
-			$query->order('b.lft');
+			$query->join('', $this->db->qn('#__assets', 'b') . $forceIndex . ' ON (a.lft BETWEEN b.lft AND b.rgt) ');
+			//$query->order('a.lft');
+
 			$prefix = 'b';
 		}
 		else
@@ -266,8 +310,12 @@ class JAuthorizeImplementationJoomlalegacy extends JAuthorizeImplementationJooml
 			$prefix = 'a';
 		}
 
-		$query->select($prefix . '.id, ' . $prefix . '.rules, p.permission, p.value, ' . $this->db->qn('p') . '.' . $this->db->qn('group'));
-		$conditions = 'ON ' . $prefix . '.id = p.assetid ';
+		$query->select(
+					$straightJoin . $prefix . '.id,' . $prefix . '.name,' . $prefix
+					. '.rules, p.permission, p.value, ' . $this->db->qn('p') . '.' . $this->db->qn('group')
+				);
+
+		$conditions = 'ON p.assetid = ' . $prefix . '.id';
 
 		if (isset($groups) && $groups != array())
 		{
@@ -291,16 +339,27 @@ class JAuthorizeImplementationJoomlalegacy extends JAuthorizeImplementationJooml
 			$conditions .= $groupQuery;
 		}
 
-		if (isset($action))
-		{
-			$conditions .= ' AND p.permission = ' . $this->db->quote((string) $action) . ' ';
-		}
-
 		$query->leftJoin($this->db->qn('#__permissions', 'p') . ' ' . $conditions);
 
-		$assetwhere = $this->assetWhere();
+		if (isset($action))
+		{
+			$query->where('p.permission = ' . $this->db->quote((string) $action)); // . 'AND p.value=1' );
+		}
+		else
+		{
+			$query->where('p.value=1');
+		}
 
-		$query->where($assetwhere);
+		if ($useIds && $recursive)
+		{
+			$query->where('a.lft > 0 AND b.lft > 0 AND b.rgt > 0');
+		}
+
+		if ($useIds)
+		{
+			$assetwhere = $this->assetWhere();
+			$query->where($assetwhere);
+		}
 
 		$this->db->setQuery($query);
 		$result = $this->db->loadObjectList();
