@@ -350,9 +350,19 @@ class JAuthorizeImplementationJoomla extends JAuthorizeImplementation implements
 	 */
 	private function getAssetPermissions($recursive = false, $groups = array(), $action = null)
 	{
-		$query = $this->db->getQuery(true);
-		$assetwhere = $this->assetWhere();
+		if (sizeof($this->assetId) > $this->optimizeLimit)
+		{
+			$useIds = false;
+			$forceIndex = $straightJoin = '';
+		}
+		else
+		{
+			$useIds = true;
+			$forceIndex = 'FORCE INDEX FOR JOIN (`lft_rgt_id`)';
+			$straightJoin = 'STRAIGHT_JOIN DISTINCT ';
+		}
 
+		$query = $this->db->getQuery(true);
 
 		// Build the database query to get the rules for the asset.
 		$query->from($this->db->qn('#__assets', 'a'));
@@ -360,12 +370,8 @@ class JAuthorizeImplementationJoomla extends JAuthorizeImplementation implements
 		// If we want the rules cascading up to the global asset node we need a self-join.
 		if ($recursive)
 		{
-			//$query->join('',$this->db->qn('#__assets', 'b') . ' ON (a.lft BETWEEN b.lft AND b.rgt) AND ' .$assetwhere  );
-			$query->join('INNER',$this->db->qn('#__assets', 'b') . 'FORCE INDEX FOR JOIN (`lft_rgt_id`) ON (a.lft BETWEEN b.lft AND b.rgt)');
-			//$query->join('INNER',$this->db->qn('#__assets', 'b') . ' ON (a.lft BETWEEN b.lft AND b.rgt)');
-			//$query->from($this->db->qn('#__assets', 'b'));
-			//$query->where('(a.lft BETWEEN b.lft AND b.rgt)');
-			//$query->order('b.lft');
+			$query->join('', $this->db->qn('#__assets', 'b') . $forceIndex . ' ON (a.lft BETWEEN b.lft AND b.rgt) ');
+
 			$prefix = 'b';
 		}
 		else
@@ -373,60 +379,75 @@ class JAuthorizeImplementationJoomla extends JAuthorizeImplementation implements
 			$prefix = 'a';
 		}
 
-		$query->select('STRAIGHT_JOIN DISTINCT ' . $prefix . '.id,' . $prefix . '.name, p.permission, p.value, ' . $this->db->qn('p') . '.' . $this->db->qn('group'));
+		$query->select(
+			$straightJoin . $prefix . '.id,' . $prefix . '.name, p.permission, p.value, '
+			. $this->db->qn('p') . '.' . $this->db->qn('group')
+		);
+
 		$conditions = 'ON p.assetid = ' . $prefix . '.id';
 
 		if (isset($groups) && $groups != array())
 		{
-			if (is_string($groups))
-			{
-				$groups = array($groups);
-			}
-
-			$counter   = 1;
-			$allGroups = count($groups);
-
-			$groupQuery = ' AND (';
-
-			foreach ($groups AS $group)
-			{
-				$groupQuery .= 'p.group = ' . $this->db->quote((string) $group);
-				$groupQuery .= ($counter < $allGroups) ? ' OR ' : ' ) ';
-				$counter++;
-			}
-
-			$conditions .= $groupQuery;
+			$conditions .= $this->assetGroupQuery($groups);
 		}
-
-		/*if (isset($action))
-		{
-			$conditions .= ' AND p.permission = ' . $this->db->quote((string) $action) . ' ';
-		}*/
 
 		$query->leftJoin($this->db->qn('#__permissions', 'p') . ' ' . $conditions);
 
 		if (isset($action))
 		{
-			$query->where ('p.permission = ' . $this->db->quote((string) $action) );//. 'AND p.value=1' );
-			//$query->where ('p.permission = ' . $this->db->quote((string) $action) . 'AND p.value=1' );
-			//$query->where ('p.value=1' );
-			/*$query->where('a.level = (SELECT max(fs.level) FROM #__assets AS fs
-  							LEFT JOIN #__permissions AS pr
- 							ON fs.id = pr.assetid 
- 						 	WHERE (a.lft BETWEEN fs.lft AND fs.rgt) AND pr.permission = ' . $this->db->quote((string) $action) . ')');*/
+			$query->where('p.permission = ' . $this->db->quote((string) $action));
+		}
+		else
+		{
+			$query->where('p.value=1');
 		}
 
+		if ($useIds && $recursive)
+		{
+			$query->where('a.lft > 0 AND b.lft > 0 AND b.rgt > 0');
+		}
 
-		$query->where($assetwhere);
-
-		$query->where('a.lft > 0 AND b.lft > 0 AND b.rgt > 0');
-
+		if ($useIds)
+		{
+			$assetwhere = $this->assetWhere();
+			$query->where($assetwhere);
+		}
 
 		$this->db->setQuery($query);
 		$result = $this->db->loadObjectList();
 
 		return $result;
 	}
+
+	/**
+	 * Build group part of the query for getAssetPermissions
+	 *
+	 * @return mixed   Db query result - the return value or null if the query failed.
+	 *                 	 *
+	 * @since   4.0
+	 */
+	protected function assetGroupQuery($groups)
+	{
+		if (is_string($groups))
+		{
+			$groups = array($groups);
+		}
+
+		$counter   = 1;
+		$allGroups = count($groups);
+
+		$groupQuery = ' AND (';
+
+		foreach ($groups AS $group)
+		{
+			$groupQuery .= 'p.group = ' . $this->db->quote((string) $group);
+			$groupQuery .= ($counter < $allGroups) ? ' OR ' : ' ) ';
+			$counter++;
+		}
+
+		return $groupQuery;
+	}
+
 
 	/**
 	 * Build where part of the query for getAssetPermissions
