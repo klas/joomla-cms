@@ -234,6 +234,9 @@ class JDatabaseDriverSqlsrv extends JDatabaseDriver
 	{
 		$result = str_replace("'", "''", $text);
 
+		// SQL Server does not accept NULL byte in query string
+		$result = str_replace("\0", "' + CHAR(0) + N'", $result);
+
 		// Fix for SQL Sever escape sequence, see https://support.microsoft.com/en-us/kb/164291
 		$result = str_replace(
 			array("\\\n",     "\\\r",     "\\\\\r\r\n"),
@@ -968,6 +971,9 @@ class JDatabaseDriverSqlsrv extends JDatabaseDriver
 	 */
 	protected function fetchObject($cursor = null, $class = 'stdClass')
 	{
+		// Class has to be loaded for sqlsrv on windows platform
+		class_exists($class);
+
 		return sqlsrv_fetch_object($cursor ? $cursor : $this->cursor, $class);
 	}
 
