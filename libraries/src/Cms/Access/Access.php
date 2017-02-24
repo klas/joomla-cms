@@ -55,7 +55,7 @@ class Access
 	public static function getAuthorisedViewLevels($userId)
 	{
 		// Get all groups that the user is mapped to recursively.
-		$groups = JUserHelper::getGroupsByUser($userId);
+		$groups = \JUserHelper::getGroupsByUser($userId);
 
 		// Only load the view levels once.
 		if (empty(self::$viewLevels))
@@ -252,7 +252,7 @@ class Access
 	 */
 	public static function getGroupTitle($groupId)
 	{
-		return JUserHelper::getGroupTitle($groupId);
+		return \JUserHelper::getGroupTitle($groupId);
 	}
 
 	/**
@@ -270,7 +270,7 @@ class Access
 	 */
 	public static function getGroupsByUser($userId, $recursive = true)
 	{
-		return JUserHelper::getGroupsByUser($userId, $recursive);
+		return \JUserHelper::getGroupsByUser($userId, $recursive);
 	}
 
 	/**
@@ -286,7 +286,7 @@ class Access
 	 */
 	public static function getUsersByGroup($groupId, $recursive = false)
 	{
-		return JUserHelper::getUsersByGroup($groupId, $recursive);
+		return \JUserHelper::getUsersByGroup($groupId, $recursive);
 	}
 
 	/**
@@ -302,6 +302,6 @@ class Access
 	 */
 	protected static function getGroupPath($groupId)
 	{
-		return JUserHelper::getGroupPath($groupId);
+		return \JUserHelper::getGroupPath($groupId);
 	}
 }
