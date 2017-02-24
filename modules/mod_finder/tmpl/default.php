@@ -20,7 +20,7 @@ $lang->load('com_finder', JPATH_SITE);
 $suffix = $params->get('moduleclass_sfx');
 $output = '<input type="text" name="q" class="js-finder-search-query input-medium" size="'
 	. $params->get('field_size', 20) . '" value="' . htmlspecialchars(JFactory::getApplication()->input->get('q', '', 'string'), ENT_COMPAT, 'UTF-8') . '"'
-	. ' placeholder="' . JText::_('MOD_FINDER_SEARCH_VALUE') . '"/>';
+	. ' placeholder="' . JText::_('MOD_FINDER_SEARCH_VALUE') . '">';
 
 $showLabel  = $params->get('show_label', 1);
 $labelClass = (!$showLabel ? 'element-invisible ' : '') . 'finder' . $suffix;
@@ -96,7 +96,7 @@ if ($params->get('show_autosuggest', 1))
 
 		<?php $show_advanced = $params->get('show_advanced'); ?>
 		<?php if ($show_advanced == 2) : ?>
-			<br />
+			<br>
 			<a href="<?php echo JRoute::_($route); ?>"><?php echo JText::_('COM_FINDER_ADVANCED_SEARCH'); ?></a>
 		<?php elseif ($show_advanced == 1) : ?>
 			<div class="js-finder-advanced">

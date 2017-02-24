@@ -103,15 +103,14 @@ JFactory::getDocument()->addScriptDeclaration("
 			<span class="icon-delete"></span><span class="hidden-sm-down"><?php echo JText::_('COM_CONTENTHISTORY_BUTTON_DELETE'); ?></span></button>
 	</div>
 
-	<div class="clearfix"></div>
-	<hr class="hr-condensed">
+	<hr>
 
 	<form action="<?php echo JRoute::_($formUrl); ?>" method="post" name="adminForm" id="adminForm">
 		<table class="table table-striped table-sm">
 			<thead>
 				<tr>
 					<th width="1%" class="text-center">
-						<input type="checkbox" name="checkall-toggle" value="" title="<?php echo JText::_('JGLOBAL_CHECK_ALL'); ?>" onclick="Joomla.checkAll(this)" />
+						<input type="checkbox" name="checkall-toggle" value="" title="<?php echo JText::_('JGLOBAL_CHECK_ALL'); ?>" onclick="Joomla.checkAll(this)">
 					</th>
 					<th width="15%">
 						<?php echo JText::_('JDATE'); ?>
@@ -183,8 +182,8 @@ JFactory::getDocument()->addScriptDeclaration("
 			</tbody>
 		</table>
 
-		<input type="hidden" name="task" value="" />
-		<input type="hidden" name="boxchecked" value="0" />
+		<input type="hidden" name="task" value="">
+		<input type="hidden" name="boxchecked" value="0">
 		<?php echo JHtml::_('form.token'); ?>
 
 	</form>

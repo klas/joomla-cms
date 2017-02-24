@@ -22,7 +22,6 @@ $colSpan   = 4 + count($this->actions);
 <form action="<?php echo JRoute::_('index.php?option=com_users&view=debuggroup&group_id=' . (int) $this->state->get('group_id')); ?>" method="post" name="adminForm" id="adminForm">
 	<div id="j-main-container" class="j-main-container">
 		<?php echo JLayoutHelper::render('joomla.searchtools.default', array('view' => $this)); ?>
-		<div class="clearfix"> </div>
 		<table class="table table-striped">
 			<thead>
 				<tr>
@@ -34,7 +33,7 @@ $colSpan   = 4 + count($this->actions);
 					</th>
 					<?php foreach ($this->actions as $key => $action) : ?>
 					<th width="5%" class="text-center">
-						<span class="hasTooltip" title="<?php echo JHtml::tooltipText($key, $action[1]); ?>"><?php echo JText::_($key); ?></span>
+						<span class="hasTooltip" title="<?php echo JHtml::_('tooltipText', $key, $action[1]); ?>"><?php echo JText::_($key); ?></span>
 					</th>
 					<?php endforeach; ?>
 					<th width="5%" class="nowrap text-center">
@@ -94,15 +93,15 @@ $colSpan   = 4 + count($this->actions);
 				<?php endforeach; ?>
 			</tbody>
 		</table>
-		<input type="hidden" name="task" value="" />
-		<input type="hidden" name="boxchecked" value="0" />
+		<input type="hidden" name="task" value="">
+		<input type="hidden" name="boxchecked" value="0">
 		<?php echo JHtml::_('form.token'); ?>
 		<div>
 			<?php echo JText::_('COM_USERS_DEBUG_LEGEND'); ?>
 			<span class="icon-white icon-ban-circle"></span><?php echo JText::_('COM_USERS_DEBUG_IMPLICIT_DENY'); ?>&nbsp;
 			<span class="icon-white icon-ok"></span><?php echo JText::_('COM_USERS_DEBUG_EXPLICIT_ALLOW'); ?>&nbsp;
 			<span class="icon-white icon-remove"></span><?php echo JText::_('COM_USERS_DEBUG_EXPLICIT_DENY'); ?>
-			<br /><br />
+			<br><br>
 		</div>
 	</div>
 </form>

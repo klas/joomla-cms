@@ -580,11 +580,13 @@ abstract class JApplicationCms extends JApplicationWeb implements ContainerAware
 	/**
 	 * Get the system message queue.
 	 *
+	 * @param   boolean  $clear  Clear the messages currently attached to the application object
+	 *
 	 * @return  array  The system message queue.
 	 *
 	 * @since   3.2
 	 */
-	public function getMessageQueue()
+	public function getMessageQueue($clear = false)
 	{
 		// For empty queue, if messages exists in the session, enqueue them.
 		if (!count($this->messageQueue))
@@ -598,7 +600,14 @@ abstract class JApplicationCms extends JApplicationWeb implements ContainerAware
 			}
 		}
 
-		return $this->messageQueue;
+		$messageQueue = $this->messageQueue;
+
+		if ($clear)
+		{
+			$this->messageQueue = array();
+		}
+
+		return $messageQueue;
 	}
 
 	/**
@@ -1205,5 +1214,41 @@ abstract class JApplicationCms extends JApplicationWeb implements ContainerAware
 		$this->sendHeaders();
 
 		return $this->getBody();
+	}
+
+	/**
+	 * Method to determine a hash for anti-spoofing variable names
+	 *
+	 * @param   boolean  $forceNew  If true, force a new token to be created
+	 *
+	 * @return  string  Hashed var name
+	 *
+	 * @since   __DEPLOY_VERSION__
+	 */
+	public function getFormToken($forceNew = false)
+	{
+		/** @var JSession $session */
+		$session = $this->getSession();
+
+		return $session->getFormToken();
+	}
+
+	/**
+	 * Checks for a form token in the request.
+	 *
+	 * Use in conjunction with getFormToken.
+	 *
+	 * @param   string  $method  The request method in which to look for the token key.
+	 *
+	 * @return  boolean  True if found and valid, false otherwise.
+	 *
+	 * @since   __DEPLOY_VERSION__
+	 */
+	public function checkToken($method = 'post')
+	{
+		/** @var JSession $session */
+		$session = $this->getSession();
+
+		return $session->checkToken($method);
 	}
 }

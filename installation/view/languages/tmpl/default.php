@@ -63,7 +63,7 @@ $version = new JVersion;
 	<?php else : ?>
 		<p id="install_languages_desc"><?php echo JText::_('INSTL_LANGUAGES_DESC'); ?></p>
 		<p id="wait_installing" style="display: none;">
-			<?php echo JText::_('INSTL_LANGUAGES_MESSAGE_PLEASE_WAIT') ?><br />
+			<?php echo JText::_('INSTL_LANGUAGES_MESSAGE_PLEASE_WAIT') ?><br>
 			<div id="wait_installing_spinner" class="spinner spinner-img" style="display: none;"></div>
 		</p>
 		<table class="table table-striped table-sm">
@@ -92,7 +92,7 @@ $version = new JVersion;
 					<?php $language->code = $element[1]; ?>
 					<tr>
 						<td>
-							<input type="checkbox" id="cb<?php echo $i; ?>" name="cid[]" value="<?php echo $language->update_id; ?>" />
+							<input type="checkbox" id="cb<?php echo $i; ?>" name="cid[]" value="<?php echo $language->update_id; ?>">
 						</td>
 						<td>
 							<label for="cb<?php echo $i; ?>"><?php echo $language->name; ?></label>
@@ -112,7 +112,7 @@ $version = new JVersion;
 				<?php endforeach; ?>
 			</tbody>
 		</table>
-		<input type="hidden" name="task" value="InstallLanguages" />
+		<input type="hidden" name="task" value="InstallLanguages">
 		<?php echo JHtml::_('form.token'); ?>
 	<?php endif; ?>
 	<div class="btn-toolbar justify-content-end">

@@ -116,7 +116,6 @@ $settings = array();
 				<?php echo substr($otep, 0, 4); ?>-<?php echo substr($otep, 4, 4); ?>-<?php echo substr($otep, 8, 4); ?>-<?php echo substr($otep, 12, 4); ?>
 			</span>
 			<?php endforeach; ?>
-			<div class="clearfix"></div>
 			<?php endif; ?>
 		</fieldset>
 
@@ -126,6 +125,6 @@ $settings = array();
 		<?php echo JHtml::_('bootstrap.endTabSet'); ?>
 	</fieldset>
 
-	<input type="hidden" name="task" value="" />
+	<input type="hidden" name="task" value="">
 	<?php echo JHtml::_('form.token'); ?>
 </form>

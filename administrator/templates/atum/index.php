@@ -53,12 +53,15 @@ $hidden      = $app->input->get('hidemainmenu');
 $logoLg      = $this->baseurl . '/templates/' . $this->template . '/images/logo.svg';
 $logoSm      = $this->baseurl . '/templates/' . $this->template . '/images/logo-icon.svg';
 
+// Set some meta data
+$doc->setMetaData('viewport', 'width=device-width, initial-scale=1');
+// @TODO sync with _variables.scss
+$doc->setMetaData('theme-color', '#1c3d5c');
+
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo $this->language; ?>" dir="<?php echo $this->direction; ?>">
 <head>
-	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<meta http-equiv="X-UA-Compatible" content="IE=edge" />
 	<jdoc:include type="head" />
 </head>
 
@@ -75,17 +78,10 @@ $logoSm      = $this->baseurl . '/templates/' . $this->template . '/images/logo-
 
 		<?php // Sidebar ?>
 		<?php if (!$hidden) : ?>
-			<div id="sidebar-wrapper" class="sidebar-wrapper" <?php echo $hidden ? 'data-hidden="' . $hidden . '"' :''; ?>>
-			<?php if (!$hidden) : ?>
-				<div class="menu-collapse hidden-lg-up">
-					<a id="menu-collapse" class="menu-toggle" href="#">
-						<span class="fa fa-bars fa-fw"></span>
-					</a>
-				</div>
-			<?php endif; ?>
+		<div id="sidebar-wrapper" class="sidebar-wrapper" <?php echo $hidden ? 'data-hidden="' . $hidden . '"' :''; ?>>
 			<div id="main-brand" class="main-brand align-items-center">
 				<a href="<?php echo JRoute::_('index.php'); ?>" aria-label="<?php echo JText::_('TPL_BACK_TO_CONTROL_PANEL'); ?>">
-					<img src="<?php echo $logoLg; ?>" class="logo" alt="<?php echo $sitename;?>" />
+					<img src="<?php echo $logoLg; ?>" class="logo" alt="<?php echo $sitename;?>">
 				</a>
 			</div>
 			<jdoc:include type="modules" name="menu" style="none" />
@@ -96,6 +92,11 @@ $logoSm      = $this->baseurl . '/templates/' . $this->template . '/images/logo-
 		<header id="header" class="header">
 			<div class="container-fluid">
 				<div class="text-center">
+					<div class="menu-collapse hidden-lg-up">
+						<a id="menu-collapse" class="menu-toggle" href="#">
+							<span class="fa fa-bars fa-fw"></span>
+						</a>
+					</div>
 
 					<a class="navbar-brand" href="<?php echo JUri::root(); ?>" title="<?php echo JText::sprintf('TPL_ATUM_PREVIEW', $sitename); ?>" target="_blank">
 						<?php echo JHtml::_('string.truncate', $sitename, 28, false, false); ?>

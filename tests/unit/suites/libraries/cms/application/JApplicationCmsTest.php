@@ -618,7 +618,7 @@ class JApplicationCmsTest extends TestCaseDatabase
 		ob_end_clean();
 
 		$this->assertEquals(
-			'<html><head><meta http-equiv="content-type" content="text/html; charset=utf-8" />'
+			'<html><head><meta http-equiv="content-type" content="text/html; charset=utf-8">'
 			. "<script>document.location.href='{$url}';</script></head><body></body></html>",
 			trim($buffer)
 		);
@@ -730,6 +730,6 @@ class JApplicationCmsTest extends TestCaseDatabase
 
 		TestReflection::invoke($this->class, 'render');
 
-		$this->assertEquals(array('JWeb Body'), TestReflection::getValue($this->class, 'response')->body);
+		$this->assertEquals('JWeb Body', (string) $this->class->getResponse()->getBody());
 	}
 }
