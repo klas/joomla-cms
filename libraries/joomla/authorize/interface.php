@@ -1,16 +1,17 @@
 <?php
 /**
- * @package     Joomla
- * @subpackage
+ * @package     Joomla.Platform
+ * @subpackage  Authorize
  *
- * @copyright   A copyright
- * @license     A "Slug" license name e.g. GPL2
+ * @copyright   Copyright (C) 2005 - 2017 Open Source Matters, Inc. All rights reserved.
+ * @license     GNU General Public License version 2 or later; see LICENSE
  */
+defined('JPATH_PLATFORM') or die;
 
 interface JAuthorizeInterface
 {
 	/**
-	 * Method to set a value Example: $access->set('items', $items);
+	 * Method to allow controlled property value setting;
 	 *
 	 * @param   string  $name   Name of the property
 	 * @param   mixed   $value  Value to assign to the property
@@ -19,28 +20,75 @@ interface JAuthorizeInterface
 	 *
 	 * @since   4.0
 	 */
-	public function set($name, $value);
+	public function __set($name, $value);
 
 	/**
-	 * Method to get the value
+	 * Method to allow controlled property value getting
 	 *
-	 * @param   string  $key           Key to search for in the data array
-	 * @param   mixed   $defaultValue  Default value to return if the key is not set
+	 * @param   string  $key   Key to search for in the data array
 	 *
-	 * @return  mixed   Value | defaultValue if doesn't exist
+	 * @return  mixed   Value | null if doesn't exist
 	 *
 	 * @since   4.0
 	 */
-	public function get($key, $defaultValue = null);
+	public function __get($key);
 
+	/**
+	 * Check if actor is authorised to perform an action, optionally on an asset.
+	 *
+	 * @param   integer  $actor   Id of the actor for which to check authorisation.
+	 * @param   mixed    $target  Subject of the check
+	 * @param   string   $action  The name of the action to authorise.
+	 * @param   string   $actorType   Type of actor.
+	 *
+	 * @return  boolean  True if authorised.
+	 *
+	 * @since   4.0
+	 */
+	public function check($actor, $target, $action, $actorType);
 
-	public function check($actor, $target, $action);
-
+	/**
+	 * Set actor as authorised to perform an action.
+	 * Implementation might choose to disable this function for security reasons.
+	 *
+	 * @param   integer  $actor       Id of the actor for which to check authorisation.
+	 * @param   mixed    $target      Subject of the check
+	 * @param   string   $action      The name of the action to authorise.
+	 *
+	 * @return  void
+	 *
+	 * @since   4.0
+	 */
 	public function allow($actor, $target, $action);
 
+	/**
+	 * Set actor as not authorised to perform an action.
+	 * Implementation might choose to disable this function for security reasons.
+	 *
+	 * @param   integer  $actor       Id of the actor for which to check authorisation.
+	 * @param   mixed    $target      Subject of the check
+	 * @param   string   $action      The name of the action to authorise.
+	 *
+	 * @return  void
+	 *
+	 * @since   4.0
+	 */
 	public function deny($actor, $target, $action);
 
-	public function appendFilterQuery(&$query, $joinfield, $permission, $orWhere = null, $groups = null);
+	/** Inject permissions filter in database object
+	 *
+	 * @param   object $query     Database query object to append to
+	 * @param   string $joincolumn Name of the database column used for join ON
+	 * @param   string $action    The name of the action to authorise.
+	 * @param   string $orWhere   Appended to generated where condition with OR clause.
+	 * @param   array  $groups    Array of group ids to get permissions for
+	 *
+	 * @param   object $query database query object to append to
+	 *
+	 * @return  mixed database query object or false if this function is not implemented
+	 *                 	 *
+	 * @since   4.0
+	 */
+	public function appendFilterQuery(&$query, $joincolumn, $action, $orWhere = null, $groups = null);
 
-	public function isAppendSupported();
 }

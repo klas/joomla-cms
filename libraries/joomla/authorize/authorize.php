@@ -1,32 +1,43 @@
 <?php
 /**
- * @package     Joomla
- * @subpackage
+ * @package     Joomla.Platform
+ * @subpackage  Authorize
  *
- * @copyright   A copyright
- * @license     A "Slug" license name e.g. GPL2
+ * @copyright   Copyright (C) 2005 - 2017 Open Source Matters, Inc. All rights reserved.
+ * @license     GNU General Public License version 2 or later; see LICENSE
  */
 
+defined('JPATH_PLATFORM') or die;
 
-class JAuthorize implements JAuthorizeInterface
+
+final class JAuthorize implements JAuthorizeInterface
 {
 	private static $instance = null;
 
-	private $implementation = null;
-
-	private $implementationClass;
+	/**
+	 * Implementation object
+	 * _ suffixed to force usage of getters and setters, use property name without_ to get or set the value
+	 *
+	 * @var    array
+	 * @since  4.0
+	 */
+	private $implementation_ = null;
 
 
 	public function __construct(JAuthorizeInterface $implementation)
 	{
 			$this->implementation = $implementation;
-			$this->implementationClass = get_class($implementation);
 	}
 
-	public static function getInstance($implementationName = 'Joomla')
+	public static function getInstance($implementationName = null)
 	{
+		if ($implementationName == null)
+		{
+			JEventDispatcher::getInstance()->trigger('onAuthorizationInitalize', array(&$implementationName));
+		}
 
-		$implementationClass = 'JAuthorizeImplementation' . JString::ucfirst($implementationName);
+		$implementationClass = empty($implementationName) ? 'JAuthorizeImplementationJoomla' :
+			'JAuthorizeImplementation' . JString::ucfirst($implementationName);
 
 		if (!isset(self::$instance[$implementationClass]))
 		{
@@ -36,11 +47,10 @@ class JAuthorize implements JAuthorizeInterface
 		}
 
 		return self::$instance[$implementationClass];
-
 	}
 
 	/**
-	 * Method to set a value Example: $access->set('items', $items);
+	 * Method to allow controlled property value setting;
 	 *
 	 * @param   string  $name   Name of the property
 	 * @param   mixed   $value  Value to assign to the property
@@ -49,24 +59,23 @@ class JAuthorize implements JAuthorizeInterface
 	 *
 	 * @since   4.0
 	 */
-	public function set($name, $value)
+	public function __set($name, $value)
 	{
 		switch ($name)
 		{
 			case 'implementation':
-				if ($value instanceof JAuthorizeInterface)
+				if ($value instanceof JAuthorizeInterface && $value instanceof JAuthorizeImplementation)
 				{
-					$this->implementation = $value;
+					$this->implementation_ = $value;
 				}
 			break;
 
 			case 'authorizationMatrix':
-				if ($value instanceof $this->implementationClass)
-				{
-					$this->implementation->set('authorizationMatrix', $value);
-				}
+				$this->implementation->authorizationMatrix = $value;
 			break;
 
+			default:
+				$this->implementation->$name = $value;
 		}
 
 		return $this;
@@ -75,46 +84,110 @@ class JAuthorize implements JAuthorizeInterface
 	/**
 	 * Method to get the value
 	 *
-	 * @param   string  $key           Key to search for in the data array
-	 * @param   mixed   $defaultValue  Default value to return if the key is not set
+	 * @param   string  $key   Key to search for in the data array
 	 *
-	 * @return  mixed   Value | defaultValue if doesn't exist
+	 * @return  mixed   Value | null if doesn't exist
 	 *
 	 * @since   4.0
 	 */
-	public function get($key, $defaultValue = null)
+	public function __get($key)
 	{
-		if ($key == 'authorizationMatrix')
+		if ($key == 'implementation')
 		{
-			return $this->implementation->get('authorizationMatrix', $defaultValue);
+			return $this->implementation_;
 		}
 
-		return $this->implementation->get($key, $defaultValue);
+		return $this->implementation->$key;
 	}
 
-	public function check($actor, $target, $action)
+	/**
+	 * Method to call otherwise inaccessible methods
+	 *
+	 * @param   string  $key           Key to search for in the data array
+	 * @param   mixed   $defaultValue  Default value to return if the key is not set
+	 *
+	 * @return  mixed   Value | null if doesn't exist
+	 *
+	 * @since   4.0
+	 */
+	public function __call($method, $parameters)
 	{
-		return $this->implementation->check($actor, $target, $action);
+		if (method_exists($this->implementation, $method))
+		{
+			return call_user_func_array(array($this->implementation, $method), $parameters);
+		}
 	}
 
+	/**
+	 * Check if actor is authorised to perform an action, optionally on an asset.
+	 *
+	 * @param   integer  $actor       Id of the actor for which to check authorisation.
+	 * @param   mixed    $target      Subject of the check
+	 * @param   string   $action      The name of the action to authorise.
+	 * @param   string   $actorType   Type of actor.
+	 *
+	 * @return  mixed  True if authorised and assetId is numeric/named. An array of boolean values if assetId is array.
+	 *
+	 * @since   4.0
+	 */
+	public function check($actor, $target, $action, $actorType)
+	{
+		return $this->implementation->check($actor, $target, $action, $actorType);
+	}
+
+	/**
+	 * Set actor as authorised to perform an action
+	 *
+	 * @param   integer  $actor       Id of the actor for which to check authorisation.
+	 * @param   mixed    $target      Subject of the check
+	 * @param   string   $action      The name of the action to authorise.
+	 *
+	 * @return  void
+	 *
+	 * @since   4.0
+	 */
 	public function allow($actor, $target, $action)
 	{
-		return $this->implementation->allow($actor, $target, $action);
+		$this->implementation->allow($actor, $target, $action);
 	}
 
+	/**
+	 * Set actor as not authorised to perform an action
+	 *
+	 * @param   integer  $actor       Id of the actor for which to check authorisation.
+	 * @param   mixed    $target      Subject of the check
+	 * @param   string   $action      The name of the action to authorise.
+	 *
+	 * @return  void
+	 *
+	 * @since   4.0
+	 */
 	public function deny($actor, $target, $action)
 	{
-		return $this->implementation->deny($actor, $target, $action);
+		$this->implementation->deny($actor, $target, $action);
 	}
 
-	public function appendFilterQuery(&$query, $joinfield, $permission, $orWhere = null, $groups = null)
+	/** Inject permissions filter in the database object
+	 *
+	 * @param   object $query     Database query object to append to
+	 * @param   string $joincolumn Name of the database column used for join ON
+	 * @param   string $action    The name of the action to authorise.
+	 * @param   string $orWhere   Appended to generated where condition with OR clause.
+	 * @param   array  $groups    Array of group ids to get permissions for
+	 *
+	 * @param   object $query database query object to append to
+	 *
+	 * @return  mixed database query object or false if this function is not implemented
+	 *                 	 *
+	 * @since   4.0
+	 */
+	public function appendFilterQuery(&$query, $joincolumn, $action, $orWhere = null, $groups = null)
 	{
-		return $this->implementation->appendFilterQuery(&$query, $joinfield, $permission, $orWhere, $groups);
-	}
+		if ($this->implementation->appendsupport)
+		{
+			return $this->implementation->appendFilterQuery($query, $joincolumn, $action, $orWhere, $groups);
+		}
 
-	public function isAppendSupported()
-	{
-		return $this->implementation->isAppendSupported();
+		return false;
 	}
-
 }

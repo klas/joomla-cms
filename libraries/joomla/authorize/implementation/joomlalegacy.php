@@ -1,20 +1,21 @@
 <?php
 /**
  * @package     Joomla.Platform
- * @subpackage  Access
+ * @subpackage  Authorize
  *
- * @copyright   Copyright (C) 2005 - 2016 Open Source Matters, Inc. All rights reserved.
+ * @copyright   Copyright (C) 2005 - 2017 Open Source Matters, Inc. All rights reserved.
  * @license     GNU General Public License version 2 or later; see LICENSE
  */
 
 defined('JPATH_PLATFORM') or die;
 
 /**
- * Class that handles all access authorisation routines.
+ * Class that handles authorisation in a backward (J3.x) compatible way
  *
- * @since  11.1
+ * @since  4.0.
+ * @deprecated No replacement, to be removed in 4.2
  */
-class JAuthorizeImplementationJoomlaLegacy extends JAuthorizeImplementationJoomla implements JAuthorizeInterface
+class JAuthorizeImplementationJoomlalegacy extends JAuthorizeImplementationJoomla implements JAuthorizeInterface
 {
 
 	/**
@@ -31,59 +32,27 @@ class JAuthorizeImplementationJoomlaLegacy extends JAuthorizeImplementationJooml
 	 * @var    array
 	 * @since  4.0
 	 */
-	public static $permCache = array();
+	protected static $permCache = array();
 
 	/**
-	 * Root asset permissions
-	 *
-	 * @var    array
+	 * @const  boolean is append query supported?
 	 * @since  4.0
 	 */
-	public static $rootAsset = null;
-
-	/**
-	 * Asset id
-	 *
-	 * @var    mixed string or integer
-	 * @since  4.0
-	 */
-	protected $assetId = 1;
-
-	/**
-	 * Rules object
-	 *
-	 * @var    object JAccessRules
-	 * @since  4.0
-	 */
-	protected $rules = null;
-
-	/**
-	 * Database object
-	 *
-	 * @var    object JDatabase object
-	 * @since  4.0
-	 */
-	protected $db = null;
-
-	const IMPLEMENTATION = 'JoomlaLegacy';
-
 	const APPENDSUPPORT = false;
+
 
 	/**
 	 * Instantiate the access class
 	 *
-	 * @param   mixed            $assetId  Assets id, can be numeric or string
-	 * @param   JAccessRules     $rules    Rules object
-	 * @param   JDatabaseDriver  $db       Database object
+	 * @param   mixed            $assetId Assets id, can be integer id or string name or array of string/integer values
+	 * @param   JDatabaseDriver  $db      Database object
 	 *
 	 *
 	 * @since  4.0
 	 */
-
-	public function __construct($assetId = 1, JAccessRules $rules = null, JDatabaseDriver $db = null)
+	public function __construct($assetId = 1, JDatabaseDriver $db = null)
 	{
-		$this->set('assetId', $assetId);
-		$this->rules = isset($rules) ? $rules : new JAccessRules();
+		$this->assetId = $assetId;
 		$this->db = isset($db) ? $db : JFactory::getDbo();
 	}
 
@@ -97,43 +66,15 @@ class JAuthorizeImplementationJoomlaLegacy extends JAuthorizeImplementationJooml
 	 *
 	 * @since   4.0
 	 */
-	public function set($name, $value)
+	public function __set($name, $value)
 	{
 		switch ($name)
 		{
-			case 'assetId':
-				if (is_numeric($value))
-				{
-					$this->assetId = (int) $value;
-				}
-				else
-				{
-					$this->assetId = (string) $value;
-				}
-				break;
-			case 'rules':
-				if ($value instanceof JAccessRules)
-				{
-					$this->rules = $value;
-				}
+			default:
+				JAuthorizeImplementationJoomla::__set($name, $value);
 		}
 
 		return $this;
-	}
-
-	/**
-	 * Method to get the value
-	 *
-	 * @param   string  $key           Key to search for in the data array
-	 * @param   mixed   $defaultValue  Default value to return if the key is not set
-	 *
-	 * @return  mixed   Value | defaultValue if doesn't exist
-	 *
-	 * @since   4.0
-	 */
-	public function get($key, $defaultValue = null)
-	{
-		return isset($this->$key) ? $this->$key : $defaultValue;
 	}
 
 	/**
@@ -141,37 +82,38 @@ class JAuthorizeImplementationJoomlaLegacy extends JAuthorizeImplementationJooml
 	 *
 	 * @return  void
 	 *
-	 * @since   11.3
+	 * @since  4.0.
 	 */
-	public static function clearStatics()
+	public function clearStatics()
 	{
 		self::$assetRules = array();
 		self::$permCache = array();
-		parent::$authorizationMatrix[self::IMPLEMENTATION] = null;
 		self::$rootAsset = null;
+
+		$this->authorizationMatrix = null;
 
 		// Legacy
 		JUserHelper::clearStatics();
 	}
 
 	/**
-	 * Method to check if a user is authorised to perform an action, optionally on an asset.
+	 * Check if a user is authorised to perform an action, optionally on an asset.
 	 *
-	 * @param   integer  $id      Id of the user/group for which to check authorisation.
+	 * @param   integer  $actor    Id of the user/group for which to check authorisation.
+	 * @param   mixed    $target  Integer asset id or the name of the asset as a string or array with this values.  Defaults to the global asset node.
 	 * @param   string   $action  The name of the action to authorise.
-	 * @param   mixed    $asset   Integer asset id or the name of the asset as a string.  Defaults to the global asset node.
-	 * @param   boolean  $group   Is id a group id?
+	 * @param   string   $actorType   Type of actor. User or group.
 	 *
-	 * @return  boolean  True if authorised.
+	 * @return  mixed  True if authorised and assetId is numeric/named. An array of boolean values if assetId is array.
 	 *
 	 * @since   4.0
 	 */
-	public function check($id, $action, $asset = null, $group = false)
+	public function check($actor, $target, $action, $actorType)
 	{
 		// Sanitise inputs.
-		$id = (int) $id;
+		$id = (int) $actor;
 
-		if ($group)
+		if ($actorType == 'group')
 		{
 			$identities = JUserHelper::getGroupPath($id);
 		}
@@ -182,31 +124,44 @@ class JAuthorizeImplementationJoomlaLegacy extends JAuthorizeImplementationJooml
 			array_unshift($identities, $id * -1);
 		}
 
-		$action = strtolower(preg_replace('#[\s\-]+#', '.', trim($action)));
+		$action = JAuthorizeHelper::cleanAction($action);
 
-		if (isset($asset))
-		{
-			$this->set('assetId', $asset);
-		}
+		// Clean and filter - run trough setter
+		$this->assetId = $target;
 
-		$asset = strtolower(preg_replace('#[\s\-]+#', '.', trim($this->assetId)));
+		// Copy value as empty does not fire getter
+		$target = $this->assetId;
 
 		// Default to the root asset node.
-		if (empty($asset))
+		if (empty($target))
 		{
 			$assets = JTable::getInstance('Asset', 'JTable', array('dbo' => $this->db));
-			$asset = $assets->getRootId();
-			$this->set('assetId', $asset);
+			$this->assetId = $assets->getRootId();
+		}
+
+		$target = (array) $target;
+
+		if (is_array($this->assetId_))
+		{
+			$result = array();
+			$rules = $this->getRules(true, null, $action);
+
+			foreach ($this->assetId_ AS $assetId)
+			{
+				$result[$assetId] = $rules->allow($action, $identities);
+			}
+
+			return $result;
 		}
 
 		// Get the rules for the asset recursively to root if not already retrieved.
-		if (empty(self::$assetRules[$asset]))
+		if (empty(self::$assetRules[$this->assetId]))
 		{
 			// Cache ALL rules for this asset
-			self::$assetRules[$asset] = $this->getRules(true, null, null);
+			self::$assetRules[$this->assetId] = $this->getRules(true, null, null);
 		}
 
-		return self::$assetRules[$asset]->allow($action, $identities);
+		return self::$assetRules[$this->assetId]->allow($action, $identities);
 	}
 
 	/**
@@ -220,6 +175,8 @@ class JAuthorizeImplementationJoomlaLegacy extends JAuthorizeImplementationJooml
 	 * @param   string   $action     Action name to limit results
 	 *
 	 * @return  JAccessRules   JAccessRules object for the asset.
+	 *
+	 * @since  4.0.
 	 */
 	public function getRules($recursive = false, $groups = null, $action = null )
 	{
@@ -247,8 +204,8 @@ class JAuthorizeImplementationJoomlaLegacy extends JAuthorizeImplementationJooml
 		}
 
 		// Instantiate and return the JAccessRules object for the asset rules.
-		$this->rules->mergeCollection(self::$permCache[$cacheId]);
-		$rules = $this->rules;
+		$rules = new JAccessRules();
+		$rules->mergeCollection(self::$permCache[$cacheId]);
 
 		// If action was set return only this action's result
 		$data = $rules->getData();
@@ -269,13 +226,14 @@ class JAuthorizeImplementationJoomlaLegacy extends JAuthorizeImplementationJooml
 	 * @param   array    $groups     Array of group ids to get permissions for
 	 * @param   string   &$action    Action name used for id calculation
 	 *
+	 * @since  4.0.
+	 *
 	 * @return string
 	 */
-
 	private function getCacheId($recursive, $groups, &$action)
 	{
 		// We are optimizing only view for frontend, otherwise 1 query for all actions is faster globaly due to cache
-		if ($action == 'core.view')
+		/*if ($action == 'core.view')
 		{
 			// If we have all actions query already take data from cache
 			if (isset(self::$permCache[md5(serialize(array($this->assetId, $recursive, $groups, null)))]))
@@ -287,9 +245,18 @@ class JAuthorizeImplementationJoomlaLegacy extends JAuthorizeImplementationJooml
 		{
 			// Don't use action in cacheId calc and query - faster with multiple actions
 			$action = null;
+		}*/
+
+		$assetid = $this->assetId;
+		static $overLimit = false;
+
+		if ($overLimit || sizeof($this->assetId) > $this->optimizeLimit)
+		{
+			$assetid = array();
+			$overLimit = true;
 		}
 
-		$cacheId = md5(serialize(array($this->assetId, $recursive, $groups, $action)));
+		$cacheId = md5(serialize(array($assetid, $recursive, $groups, $action)));
 
 		return $cacheId;
 	}
@@ -301,10 +268,24 @@ class JAuthorizeImplementationJoomlaLegacy extends JAuthorizeImplementationJooml
 	 * @param   array    $groups     Array of group ids to get permissions for
 	 * @param   string   $action     Action name to limit results
 	 *
+	 * @since  4.0.
+	 *
 	 * @return mixed   Db query result - the return value or null if the query failed.
 	 */
-	public  function getAssetPermissions($recursive = false, $groups = array(), $action = null)
+	private function getAssetPermissions($recursive = false, $groups = array(), $action = null)
 	{
+		if (sizeof($this->assetId) > $this->optimizeLimit)
+		{
+			$useIds = false;
+			$forceIndex = $straightJoin = '';
+		}
+		else
+		{
+			$useIds = true;
+			$forceIndex = 'FORCE INDEX FOR JOIN (`lft_rgt_id`)';
+			$straightJoin = 'STRAIGHT_JOIN ';
+		}
+
 		$query = $this->db->getQuery(true);
 
 		// Build the database query to get the rules for the asset.
@@ -313,9 +294,8 @@ class JAuthorizeImplementationJoomlaLegacy extends JAuthorizeImplementationJooml
 		// If we want the rules cascading up to the global asset node we need a self-join.
 		if ($recursive)
 		{
-			$query->from($this->db->qn('#__assets', 'b'));
-			$query->where('a.lft BETWEEN b.lft AND b.rgt');
-			$query->order('b.lft');
+			$query->join('', $this->db->qn('#__assets', 'b') . $forceIndex . ' ON (a.lft BETWEEN b.lft AND b.rgt) ');
+
 			$prefix = 'b';
 		}
 		else
@@ -323,49 +303,39 @@ class JAuthorizeImplementationJoomlaLegacy extends JAuthorizeImplementationJooml
 			$prefix = 'a';
 		}
 
-		$query->select($prefix . '.id, ' . $prefix . '.rules, p.permission, p.value, ' . $this->db->qn('p'). '.' . $this->db->qn('group'));
-		$conditions = 'ON ' . $prefix . '.id = p.assetid ';
+		$query->select(
+					$straightJoin . 'DISTINCT ' . $prefix . '.id,' . $prefix . '.name,' . $prefix
+					. '.rules, p.permission, p.value, ' . $this->db->qn('p') . '.' . $this->db->qn('group')
+				);
+
+		$conditions = 'ON p.assetid = ' . $prefix . '.id';
 
 		if (isset($groups) && $groups != array())
 		{
-			if (is_string($groups))
-			{
-				$groups = array($groups);
-			}
-
-			$counter   = 1;
-			$allGroups = count($groups);
-
-			$groupQuery = ' AND (';
-
-			foreach ($groups AS $group)
-			{
-				$groupQuery .= 'p.group = ' . $this->db->quote((string) $group);
-				$groupQuery .= ($counter < $allGroups) ? ' OR ' : ' ) ';
-				$counter++;
-			}
-
-			$conditions .= $groupQuery;
-		}
-
-		if (isset($action))
-		{
-			$conditions .= ' AND p.permission = ' . $this->db->quote((string) $action) . ' ';
+			$conditions .= $this->assetGroupQuery($groups);
 		}
 
 		$query->leftJoin($this->db->qn('#__permissions', 'p') . ' ' . $conditions);
 
-		// If the asset identifier is numeric assume it is a primary key, else lookup by name.
-		if (is_numeric($this->assetId))
+		if (isset($action))
 		{
-			$query->where('a.id = ' . (int) $this->assetId);
+			$query->where('p.permission = ' . $this->db->quote((string) $action));
 		}
 		else
 		{
-			$query->where('a.name = ' . $this->db->quote((string) $this->assetId));
+			$query->where('p.value=1');
 		}
 
-		$test = (string)$query;
+		if ($useIds && $recursive)
+		{
+			$query->where('a.lft > 0 AND b.lft > 0 AND b.rgt > 0');
+		}
+
+		if ($useIds)
+		{
+			$assetwhere = $this->assetWhere();
+			$query->where($assetwhere);
+		}
 
 		$this->db->setQuery($query);
 		$result = $this->db->loadObjectList();
@@ -375,9 +345,32 @@ class JAuthorizeImplementationJoomlaLegacy extends JAuthorizeImplementationJooml
 
 
 	/**
+	 * Query root asset permissions
+	 *
+	 * @since  4.0.
+	 *
+	 * @return mixed   Db query result - the return value or null if the query failed.
+	 */
+	public function getRootAssetPermissions()
+	{
+		$query = $this->db->getQuery(true);
+		$query  ->select('b.id, b.rules, p.permission, p.value, ' . $this->db->qn('p') . '.' . $this->db->qn('group'))
+			->from($this->db->qn('#__assets', 'b'))
+			->leftJoin($this->db->qn('#__permissions', 'p') . ' ON b.id = p.assetid')
+			->where('b.parent_id=0');
+		$this->db->setQuery($query);
+
+		self::$rootAsset  = $this->db->loadObjectList();
+
+		return self::$rootAsset;
+	}
+
+	/**
 	 * Merge new permissions with old rules from assets table for backwards compatibility
 	 *
 	 * @param   object  $results  database query result object with permissions and rules
+	 *
+	 * @since  4.0.
 	 *
 	 * @return  array   authorisation matrix
 	 */
@@ -411,5 +404,4 @@ class JAuthorizeImplementationJoomlaLegacy extends JAuthorizeImplementationJooml
 
 		return $mergedResult;
 	}
-
 }

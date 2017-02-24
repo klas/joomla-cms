@@ -1,18 +1,36 @@
 <?php
 /**
- * @package     Joomla
- * @subpackage
+ * @package     Joomla.Platform
+ * @subpackage  Authorize
  *
- * @copyright   A copyright
- * @license     A "Slug" license name e.g. GPL2
+ * @copyright   Copyright (C) 2005 - 2017 Open Source Matters, Inc. All rights reserved.
+ * @license     GNU General Public License version 2 or later; see LICENSE
  */
 
-
+defined('JPATH_PLATFORM') or die;
 
 abstract class JAuthorizeImplementation
 {
-	protected static $authorizationMatrix = array();
+	/**
+	 * A multidimensional array with authorization matryx [authorizationclass][assetid][action1][group] = value
+	 *
+	 * @var    array
+	 * @since  4.0
+	 */
+	private static $authorizationMatrix = array();
 
+	/**
+	 * Database object
+	 *
+	 * @var    object
+	 * @since  4.0
+	 */
+	private $db = null;
+
+	/**
+	 * @const  boolean is append query supported?
+	 * @since  4.0
+	 */
 	const APPENDSUPPORT = false;
 
 	/**
@@ -21,18 +39,50 @@ abstract class JAuthorizeImplementation
 	 * @param   string  $key           Key to search for in the data array
 	 * @param   mixed   $defaultValue  Default value to return if the key is not set
 	 *
-	 * @return  mixed   Value | defaultValue if doesn't exist
+	 * @return  mixed   Value | null if doesn't exist
 	 *
 	 * @since   4.0
 	 */
-	public function get($key, $defaultValue = null)
+	public function __get($key)
 	{
-		if ($key == 'authorizationMatrix')
+		switch ($key)
 		{
-			return isset(static::$authorizationMatrix[__CLASS__]) ? static::$authorizationMatrix[__CLASS__] : $defaultValue;
-		}
+			case 'authorizationMatrix':
+				$class = get_class($this);
+				return JAuthorizeImplementation::getMatrix($class);
 
-		return isset($this->$key) ? $this->$key : $defaultValue;
+				break;
+
+			case 'appendsupport':
+				return static::APPENDSUPPORT;
+				break;
+
+			default:
+				if (isset($this->$key))
+				{
+					return $this->$key;
+				}
+				else
+				{
+					throw new UnexpectedValueException(sprintf('%s does not exist in %s', $key, get_class($this)));
+				}
+				break;
+		}
+	}
+
+	/**
+	 * A workaround method to get value of the authorization matrix.
+	 * Can be removed/changed when there is support for static getters
+	 *
+	 * @param   string   $class  Child class name
+	 *
+	 * @return  array
+	 *
+	 * @since   4.0
+	 */
+	protected static function getMatrix($class)
+	{
+		return isset(self::$authorizationMatrix[$class]) ? self::$authorizationMatrix[$class] : array();
 	}
 
 	/**
@@ -45,12 +95,20 @@ abstract class JAuthorizeImplementation
 	 *
 	 * @since   4.0
 	 */
-	public function set($name, $value)
+	public function __set($name, $value)
 	{
 		switch ($name)
 		{
 			case 'authorizationMatrix':
-				static::$authorizationMatrix[__CLASS__] = $value;
+				$class = get_class($this);
+				JAuthorizeImplementation::setMatrix($value, $class);
+				break;
+
+			case 'db':
+				if ($value instanceof JDatabaseDriver)
+				{
+					$this->db = $value;
+				}
 				break;
 
 			default:
@@ -58,39 +116,107 @@ abstract class JAuthorizeImplementation
 				{
 					$this->$name = $value;
 				}
+				else
+				{
+					throw new UnexpectedValueException(sprintf('%s does not exist in %s', $name, get_class($this)));
+				}
 				break;
 		}
 
 		return $this;
 	}
 
+	/**
+	 * A workaround method to set value of the authorization matrix. Even that it is protected it will
+	 * throw exception when called from child classes. Can be removed/changed when there is support for static setters
+	 *
+	 * @param   mixed    $value  Value to assign to the property
+	 * @param   string   $class  Child class name
+	 *
+	 * @return  self
+	 *
+	 * @since   4.0
+	 */
+	protected static function setMatrix($value, $class)
+	{
+		$trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2)[1];
 
-	public function allow($actor, $target, $action){
-
-		if (isset(static::$authorizationMatrix[__CLASS__]))
+		if ($trace['function'] == '__set' && $trace['class'] == 'JAuthorizeImplementation')
 		{
-			static::$authorizationMatrix[__CLASS__][$target][$action][$actor] = 1;
+			self::$authorizationMatrix[$class] = $value;
+		}
+		else
+		{
+			throw new BadMethodCallException('setMatrix should not be called from child classes directly, use $this->authorizationMatrix');
+		}
+	}
+
+
+	/**
+	 * Set actor as authorised to perform an action
+	 *
+	 * @param   integer  $actor       Id of the actor for which to check authorisation.
+	 * @param   mixed    $target      Subject of the check
+	 * @param   string   $action      The name of the action to authorise.
+	 *
+	 * @return  void
+	 *
+	 * @since   4.0
+	 */
+	protected function allow($actor, $target, $action)
+	{
+
+		$class = get_class($this);
+
+		$authorizationMatrix = $this->authorizationMatrix;
+
+		if (isset($authorizationMatrix[$class]))
+		{
+			$this->authorizationMatrix[$class][$target][$action][$actor] = 1;
 		}
 
 	}
 
-	public function deny($actor, $target, $action)
+	/**
+	 * Set actor as not authorised to perform an action
+	 *
+	 * @param   integer  $actor       Id of the actor for which to check authorisation.
+	 * @param   mixed    $target      Subject of the check
+	 * @param   string   $action      The name of the action to authorise.
+	 *
+	 * @return  void
+	 *
+	 * @since   4.0
+	 */
+	protected function deny($actor, $target, $action)
 	{
-		if (isset(static::$authorizationMatrix[__CLASS__]))
+		$class = get_class($this);
+
+		$authorizationMatrix = $this->authorizationMatrix;
+
+		if (isset($authorizationMatrix[$class]))
 		{
-			static::$authorizationMatrix[__CLASS__][$target][$action][$actor] = 0;
+			$this->authorizationMatrix[$class][$target][$action][$actor] = 0;
 		}
 
 	}
 
-
-	public function appendFilterQuery(&$query, $joinfield, $permission, $orWhere = null, $groups = null)
+	/** Inject permissions filter in the database object
+	 *
+	 * @param   object $query     Database query object to append to
+	 * @param   string $joincolumn Name of the database column used for join ON
+	 * @param   string $action    The name of the action to authorise.
+	 * @param   string $orWhere   Appended to generated where condition with OR clause.
+	 * @param   array  $groups    Array of group ids to get permissions for
+	 *
+	 * @param   object $query database query object to append to
+	 *
+	 * @return  mixed database query object or false if this function is not implemented
+	 *                 	 *
+	 * @since   4.0
+	 */
+	public function appendFilterQuery(&$query, $joincolumn, $action, $orWhere = null, $groups = null)
 	{
-		return $query;
-	}
-
-	public function isAppendSupported()
-	{
-		return static::APPENDSUPPORT;
+		return false;
 	}
 }

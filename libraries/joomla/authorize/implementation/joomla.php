@@ -1,18 +1,18 @@
 <?php
 /**
  * @package     Joomla.Platform
- * @subpackage  Access
+ * @subpackage  Authorize
  *
- * @copyright   Copyright (C) 2005 - 2016 Open Source Matters, Inc. All rights reserved.
+ * @copyright   Copyright (C) 2005 - 2017 Open Source Matters, Inc. All rights reserved.
  * @license     GNU General Public License version 2 or later; see LICENSE
  */
 
 defined('JPATH_PLATFORM') or die;
 
 /**
- * Class that handles all access authorisation routines.
+ * Class that handles default Joomla authorisation routines.
  *
- * @since  11.1
+ * @since  4.0.
  */
 class JAuthorizeImplementationJoomla extends JAuthorizeImplementation implements JAuthorizeInterface
 {
@@ -23,33 +23,36 @@ class JAuthorizeImplementationJoomla extends JAuthorizeImplementation implements
 	 * @var    array
 	 * @since  4.0
 	 */
-	public static $rootAsset = null;
+	protected static $rootAsset = null;
 
 	/**
-	 * Asset id
+	 * Integer asset id or the name of the asset as a string or array with this values.
+	 * _ suffixed to force usage of setters, use property name without_ to set the value
 	 *
-	 * @var    mixed string or integer
+	 * @var    mixed string or integer or array
 	 * @since  4.0
 	 */
-	protected $assetId = 1;
-
+	protected $assetId_ = 1;
 
 	/**
-	 * Database object
-	 *
-	 * @var    object JDatabase object
+	 * @const  boolean is append query supported?
 	 * @since  4.0
 	 */
-	protected $db = null;
-
-	const IMPLEMENTATION = 'Joomla';
-
 	const APPENDSUPPORT = true;
+
+	/**
+	 * If number of ids passed in one call surpasses this limit,
+	 * all permissions will be loaded as query runs much faster this way
+	 *
+	 * @var    integer
+	 * @since  4.0
+	 */
+	protected $optimizeLimit = 100;
 
 	/**
 	 * Instantiate the access class
 	 *
-	 * @param   mixed            $assetId  Assets id, can be numeric or string
+	 * @param   mixed            $assetId  Assets id, can be integer or string or array of string/integer values
 	 * @param   JAccessRules     $rules    Rules object
 	 * @param   JDatabaseDriver  $db       Database object
 	 *
@@ -59,7 +62,7 @@ class JAuthorizeImplementationJoomla extends JAuthorizeImplementation implements
 
 	public function __construct($assetId = 1, JDatabaseDriver $db = null)
 	{
-		$this->set('assetId', $assetId);
+		$this->assetId = $assetId;
 		$this->db = isset($db) ? $db : JFactory::getDbo();
 	}
 
@@ -73,59 +76,100 @@ class JAuthorizeImplementationJoomla extends JAuthorizeImplementation implements
 	 *
 	 * @since   4.0
 	 */
-	public function set($name, $value)
+	public function __set($name, $value)
 	{
 		switch ($name)
 		{
 			case 'assetId':
 				if (is_numeric($value))
 				{
-					$this->assetId = (int) $value;
+					$this->assetId_ = (int) JAuthorizeHelper::cleanAssetId($value);
+				}
+				elseif (is_array($value))
+				{
+					$this->assetId_ = array();
+
+					foreach ($value AS $val)
+					{
+						$this->assetId_[] = is_numeric($val) ? (int) JAuthorizeHelper::cleanAssetId($val) : (string) JAuthorizeHelper::cleanAssetId($val);
+					}
 				}
 				else
 				{
-					$this->assetId = (string) $value;
+					$this->assetId_ = (string) JAuthorizeHelper::cleanAssetId($value);
 				}
+				break;
+
+			case 'rootAsset':
+				static::$rootAsset = $value;
+				break;
+
+			default:
+				parent::__set($name, $value);
 				break;
 		}
 
 		return $this;
 	}
 
+	/**
+	 * Method to get the value
+	 *
+	 * @param   string  $key           Key to search for in the data array
+	 * @param   mixed   $defaultValue  Default value to return if the key is not set
+	 *
+	 * @return  mixed   Value | null if doesn't exist
+	 *
+	 * @since   4.0
+	 */
+	public function __get($key)
+	{
+		switch ($key)
+		{
+			case 'assetId':
+				return $this->assetId_;
+				break;
+
+			default:
+				return JAuthorizeImplementation::__get($key);
+				break;
+		}
+
+	}
 
 	/**
 	 * Method for clearing static caches.
 	 *
 	 * @return  void
 	 *
-	 * @since   11.3
+	 * @since  4.0.
 	 */
-	public static function clearStatics()
+	public function clearStatics()
 	{
-
-		parent::$authorizationMatrix[self::IMPLEMENTATION] = null;
+		$this->__set('authorizationMatrix', null);
 
 		self::$rootAsset = null;
 	}
 
 	/**
-	 * Method to check if a user is authorised to perform an action, optionally on an asset.
+	 * Check if a user is authorised to perform an action, optionally on an asset.
 	 *
-	 * @param   integer  $id      Id of the user/group for which to check authorisation.
-	 * @param   string   $action  The name of the action to authorise.
-	 * @param   mixed    $asset   Integer asset id or the name of the asset as a string.  Defaults to the global asset node.
-	 * @param   boolean  $group   Is id a group id?
+	 * @param   integer  $actor       Id of the user/group for which to check authorisation.
+	 * @param   mixed    $target      Integer asset id or the name of the asset as a string or array with this values.
+	 *                                Defaults to the global asset node.
+	 * @param   string   $action      The name of the action to authorise.
+	 * @param   string   $actorType   Type of actor. User or group.
 	 *
-	 * @return  boolean  True if authorised.
+	 * @return  mixed  True if authorised and assetId is numeric/named. An array of boolean values if assetId is array.
 	 *
 	 * @since   4.0
 	 */
-	public function check($id, $action, $asset = null, $group = false)
+	public function check($actor, $target, $action, $actorType)
 	{
 		// Sanitise inputs.
-		$id = (int) $id;
+		$id = (int) $actor;
 
-		if ($group)
+		if ($actorType == 'group')
 		{
 			$identities = JUserHelper::getGroupPath($id);
 		}
@@ -136,43 +180,110 @@ class JAuthorizeImplementationJoomla extends JAuthorizeImplementation implements
 			array_unshift($identities, $id * -1);
 		}
 
-		$action = strtolower(preg_replace('#[\s\-]+#', '.', trim($action)));
+		$action = JAuthorizeHelper::cleanAction($action);
 
-		if (isset($asset))
-		{
-			$this->set('assetId', $asset);
-		}
+		// Clean and filter - run trough setter
+		$this->assetId = $target;
 
-		$asset = strtolower(preg_replace('#[\s\-]+#', '.', trim($this->assetId)));
+		// Copy value as empty does not fire getter
+		$target = $this->assetId;
 
 		// Default to the root asset node.
-		if (empty($asset))
+		if (empty($target))
 		{
 			$assets = JTable::getInstance('Asset', 'JTable', array('dbo' => $this->db));
-			$asset = $assets->getRootId();
-			$this->set('assetId', $asset);
+			$target = $this->assetId = $assets->getRootId();
 		}
 
-		// Get the rules for the asset recursively to root if not already retrieved.
-		if (empty(parent::$authorizationMatrix[self::IMPLEMENTATION][$asset]))
+		// Local copy as empty/isset doesn't play nicely with getters
+		$authorizationMatrix = $this->authorizationMatrix;
+
+		if (is_array($target))
 		{
-			// Cache ALL permissions for this asset
-			$this->loadPermissions(true, null, null);
+			// Load only ids that don't already exist in matrix
+			$newAssetIds = array();
+
+			foreach ($target AS $assetId)
+			{
+				if (!isset($authorizationMatrix[$assetId][$action]))
+				{
+					$newAssetIds[] = $assetId;
+				}
+			}
+
+			$this->assetId = $newAssetIds;
+
+			$this->loadPermissions(true, array(), $action);
+
+			// Revert ids after loading
+			$this->assetId = $target;
+
+			$result = array();
+
+			foreach ($target AS $assetId)
+			{
+				$result[$assetId] = $this->calculate($assetId, $action, $identities);
+			}
+
+			return $result;
+
 		}
 
-		return $this->calculate($asset, $action, $identities);
+		elseif (!isset($authorizationMatrix[$target][$action]))
+		{
+			$this->loadPermissions(true, array(), $action);
+		}
+
+		return $this->calculate($target, $action, $identities);
 	}
 
-	public function loadPermissions($recursive = false, $groups = null, $action = null )
+	/**
+	 * Load permissions into authorization matrix
+	 *
+	 * @param   boolean  $recursive  True to return the rules object with inherited rules.
+	 * @param   array    $groups     Array of group ids to get permissions for
+	 * @param   string   $action     Action name to limit results
+	 *
+	 * @return  void
+	 *
+	 * @since   4.0
+	 */
+	public function loadPermissions($recursive = false, $groups = array(), $action = null )
 	{
-		$permissionsFromQuery = $this->getAssetPermissions($recursive, $groups, $action);
-		$this->prefillMatrix($permissionsFromQuery);
+		$result = $this->getAssetPermissions($recursive, $groups, $action);
+
+		// If there is no result get all permisions for root node and cache it!
+		if (empty($result))
+		{
+			if (!isset(self::$rootAsset))
+			{
+				$this->getRootAssetPermissions();
+			}
+
+			$result = self::$rootAsset;
+		}
+
+		$this->prefillMatrix($result);
 	}
 
+	/**
+	 *
+	 *
+	 * @param   mixed   $asset   Integer asset id or the name of the asset as a string or array with this values.  Defaults to the global asset node.
+	 * @param   string  $action The name of the action to authorise.
+	 * @param   array   $identities user or group ids
+	 *
+	 * @return  boolean true if authorized
+	 *
+	 * @since   4.0
+	 */
 	protected function calculate($asset, $action, $identities)
 	{
 		// Implicit deny by default.
 		$result = null;
+
+		// isset & empty don't work with getters
+		$authorizationMatrix = $this->authorizationMatrix;
 
 		// Check that the inputs are valid.
 		if (!empty($identities))
@@ -182,20 +293,23 @@ class JAuthorizeImplementationJoomla extends JAuthorizeImplementation implements
 				$identities = array($identities);
 			}
 
-			foreach ($identities as $identity)
+			if (isset($authorizationMatrix[$asset][$action]))
 			{
-				// Technically the identity just needs to be unique.
-				$identity = (int) $identity;
-
-				// Check if the identity is known.
-				if (isset(parent::$authorizationMatrix[self::IMPLEMENTATION][$asset][$action][$identity]))
+				foreach ($identities as $identity)
 				{
-					$result = (boolean) parent::$authorizationMatrix[self::IMPLEMENTATION][$asset][$action][$identity];
+					// Technically the identity just needs to be unique.
+					$identity = (int) $identity;
 
-					// An explicit deny wins.
-					if ($result === false)
+					// Check if the identity is known.
+					if (isset($authorizationMatrix[$asset][$action][$identity]))
 					{
-						break;
+						$result = (boolean) $authorizationMatrix[$asset][$action][$identity];
+
+						// An explicit deny wins.
+						if ($result === false)
+						{
+							break;
+						}
 					}
 				}
 			}
@@ -204,20 +318,31 @@ class JAuthorizeImplementationJoomla extends JAuthorizeImplementation implements
 		return $result;
 	}
 
-
 	/**
-	 * Query permissions based on asset id.
+	 * Execute query to get permissions from database
 	 *
 	 * @param   boolean  $recursive  True to return the rules object with inherited rules.
 	 * @param   array    $groups     Array of group ids to get permissions for
 	 * @param   string   $action     Action name to limit results
 	 *
 	 * @return mixed   Db query result - the return value or null if the query failed.
-	 *                 	 *
+	 *
 	 * @since   4.0
 	 */
 	private function getAssetPermissions($recursive = false, $groups = array(), $action = null)
 	{
+		if (sizeof($this->assetId) > $this->optimizeLimit)
+		{
+			$useIds = false;
+			$forceIndex = $straightJoin = '';
+		}
+		else
+		{
+			$useIds = true;
+			$forceIndex = 'FORCE INDEX FOR JOIN (`lft_rgt_id`)';
+			$straightJoin = 'STRAIGHT_JOIN ';
+		}
+
 		$query = $this->db->getQuery(true);
 
 		// Build the database query to get the rules for the asset.
@@ -226,9 +351,8 @@ class JAuthorizeImplementationJoomla extends JAuthorizeImplementation implements
 		// If we want the rules cascading up to the global asset node we need a self-join.
 		if ($recursive)
 		{
-			$query->from($this->db->qn('#__assets', 'b'));
-			$query->where('a.lft BETWEEN b.lft AND b.rgt');
-			$query->order('b.lft');
+			$query->join('', $this->db->qn('#__assets', 'b') . $forceIndex . ' ON (a.lft BETWEEN b.lft AND b.rgt) ');
+
 			$prefix = 'b';
 		}
 		else
@@ -236,46 +360,38 @@ class JAuthorizeImplementationJoomla extends JAuthorizeImplementation implements
 			$prefix = 'a';
 		}
 
-		$query->select($prefix . '.id, p.permission, p.value, ' . $this->db->qn('p') . '.' . $this->db->qn('group'));
-		$conditions = 'ON ' . $prefix . '.id = p.assetid ';
+		$query->select(
+			$straightJoin . 'DISTINCT ' . $prefix . '.id,' . $prefix . '.name, p.permission, p.value, '
+			. $this->db->qn('p') . '.' . $this->db->qn('group')
+		);
+
+		$conditions = 'ON p.assetid = ' . $prefix . '.id';
 
 		if (isset($groups) && $groups != array())
 		{
-			if (is_string($groups))
-			{
-				$groups = array($groups);
-			}
-
-			$counter   = 1;
-			$allGroups = count($groups);
-
-			$groupQuery = ' AND (';
-
-			foreach ($groups AS $group)
-			{
-				$groupQuery .= 'p.group = ' . $this->db->quote((string) $group);
-				$groupQuery .= ($counter < $allGroups) ? ' OR ' : ' ) ';
-				$counter++;
-			}
-
-			$conditions .= $groupQuery;
-		}
-
-		if (isset($action))
-		{
-			$conditions .= ' AND p.permission = ' . $this->db->quote((string) $action) . ' ';
+			$conditions .= $this->assetGroupQuery($groups);
 		}
 
 		$query->leftJoin($this->db->qn('#__permissions', 'p') . ' ' . $conditions);
 
-		// If the asset identifier is numeric assume it is a primary key, else lookup by name.
-		if (is_numeric($this->assetId))
+		if (isset($action))
 		{
-			$query->where('a.id = ' . (int) $this->assetId);
+			$query->where('p.permission = ' . $this->db->quote((string) $action));
 		}
 		else
 		{
-			$query->where('a.name = ' . $this->db->quote((string) $this->assetId));
+			$query->where('p.value=1');
+		}
+
+		if ($useIds && $recursive)
+		{
+			$query->where('a.lft > 0 AND b.lft > 0 AND b.rgt > 0');
+		}
+
+		if ($useIds)
+		{
+			$assetwhere = $this->assetWhere();
+			$query->where($assetwhere);
 		}
 
 		$this->db->setQuery($query);
@@ -285,14 +401,93 @@ class JAuthorizeImplementationJoomla extends JAuthorizeImplementation implements
 	}
 
 	/**
+	 * Build group part of the query for getAssetPermissions
+	 *
+	 * @param   array    $groups     Array of group ids to get permissions for
+	 *
+	 * @return mixed   Db query result - the return value or null if the query failed.
+	 *                 	 *
+	 * @since   4.0
+	 */
+	protected function assetGroupQuery($groups)
+	{
+		if (is_string($groups))
+		{
+			$groups = array($groups);
+		}
+
+		$counter   = 1;
+		$allGroups = count($groups);
+
+		$groupQuery = ' AND (';
+
+		foreach ($groups AS $group)
+		{
+			$groupQuery .= 'p.group = ' . $this->db->quote((string) $group);
+			$groupQuery .= ($counter < $allGroups) ? ' OR ' : ' ) ';
+			$counter++;
+		}
+
+		return $groupQuery;
+	}
+
+
+	/**
+	 * Build where part of the query for getAssetPermissions
+	 *
+	 * @return mixed   Db query result - the return value or null if the query failed.
+	 *                 	 *
+	 * @since   4.0
+	 */
+	protected function assetWhere()
+	{
+		// Make all assetIds arrays so we can use them in foreach and IN
+		$assetIds = (array) $this->assetId;
+		$numerics = $strings = array();
+
+		foreach ($assetIds AS $assetId)
+		{
+			if (is_numeric($assetId))
+			{
+				$numerics[] = (int) $assetId;
+			}
+			else
+			{
+				$strings[] = $this->db->q((string) $assetId);
+			}
+		}
+
+		$assetwhere = '';
+
+		if (!empty($numerics))
+		{
+			$assetwhere .= 'a.id IN (' . implode(',', $numerics) . ')';
+		}
+
+		if (!empty($strings))
+		{
+			if (!empty($assetwhere))
+			{
+				$assetwhere .= ' OR ';
+			}
+
+			$assetwhere .= 'a.name IN (' . implode(',', $strings) . ')';
+		}
+
+		return $assetwhere;
+	}
+
+	/**
 	 * Query root asset permissions
 	 *
 	 * @return mixed   Db query result - the return value or null if the query failed.
+	 *
+	 * @since   4.0
 	 */
 	public function getRootAssetPermissions()
 	{
 		$query = $this->db->getQuery(true);
-		$query  ->select('b.id, p.permission, p.value, ' . $this->db->qn('p'). '.' . $this->db->qn('group'))
+		$query  ->select('b.id, b.name, p.permission, p.value, ' . $this->db->qn('p') . '.' . $this->db->qn('group'))
 				->from($this->db->qn('#__assets', 'b'))
 				->leftJoin($this->db->qn('#__permissions', 'p') . ' ON b.id = p.assetid')
 				->where('b.parent_id=0');
@@ -304,9 +499,9 @@ class JAuthorizeImplementationJoomla extends JAuthorizeImplementation implements
 	}
 
 	/**
-	 * Merge new permissions with old rules from assets table for backwards compatibility
+	 * Prefill authorizatoon matryx with results form query
 	 *
-	 * @param   object  $results  database query result object with permissions and rules
+	 * @param   object  $results  database query result object with permissions
 	 *
 	 * @return  void
 	 *
@@ -314,50 +509,47 @@ class JAuthorizeImplementationJoomla extends JAuthorizeImplementation implements
 	 */
 	private function prefillMatrix($results)
 	{
-		parent::$authorizationMatrix[self::IMPLEMENTATION] = array();
+		$authorizationMatrix = array();
 
 		foreach ($results AS $result)
 		{
 			if (isset($result->permission) && !empty($result->permission))
 			{
-				if (!isset(parent::$authorizationMatrix[self::IMPLEMENTATION][$result->id]))
+				if (!isset($authorizationMatrix[$result->id]))
 				{
-					parent::$authorizationMatrix[self::IMPLEMENTATION][$result->id] = array();
+					$authorizationMatrix[$result->id] = array();
 				}
 
-				if (!isset(parent::$authorizationMatrix[self::IMPLEMENTATION][$result->id][$result->permission]))
+				if (!isset($authorizationMatrix[$result->id][$result->permission]))
 				{
-					parent::$authorizationMatrix[self::IMPLEMENTATION][$result->id][$result->permission] = array();
+					$authorizationMatrix[$result->id][$result->permission] = array();
 				}
 
-				parent::$authorizationMatrix[self::IMPLEMENTATION][$result->id][$result->permission][$result->group] = (int) $result->value;
+				$authorizationMatrix[$result->id][$result->permission][$result->group] = (int) $result->value;
+				$authorizationMatrix[$result->name][$result->permission][$result->group] = (int) $result->value;
 			}
 		}
+
+		$this->authorizationMatrix = $authorizationMatrix;
 	}
 
 	/** Inject permissions filter in database object
-    *
-    * @TODO make filter usable by passing asset name
-	* @return  object database query object
+	 *
+	 * @TODO make filter usable by passing asset name
+	 * @return  object database query object
 	 *                 	 *
 	 * @since   4.0
-    */
-	public function appendFilterQuery(&$query, $joinfield, $permission, $orWhere = null, $groups = null)
+	 */
+	public function appendFilterQuery(&$query, $joincolumn, $action, $orWhere = null, $groups = null)
 	{
-
 		if (!isset($groups))
 		{
 			$user   = JFactory::getUser();
 			$groups = $user->getAuthorisedGroups();
 		}
 
-		/*if ($user->isAdmin((int) $user->id) == true)
-		{
-			return; // No filter for admins
-		}*/
-
 		$query->select('ass.id AS assid, bs.id AS bssid, bs.rules, p.permission, p.value, p.group');
-		$query->leftJoin('#__assets AS ass ON ass.id = ' . $joinfield);
+		$query->leftJoin('#__assets AS ass ON ass.id = ' . $joincolumn);
 
 		// If we want the rules cascading up to the global asset node we need a self-join.
 		$query->innerJoin('#__assets AS bs');
@@ -368,31 +560,14 @@ class JAuthorizeImplementationJoomla extends JAuthorizeImplementation implements
 
 		if (isset($groups))
 		{
-			if (is_string($groups))
-			{
-				$groups = array($groups);
-			}
-
-			$counter   = 1;
-			$allgroups = count($groups);
-
-			$gquery = ' AND (';
-
-			foreach ($groups AS $group)
-			{
-				$gquery .= 'p.group = ' . $this->db->quote((string) $group);
-				$gquery .= ($counter < $allgroups) ? ' OR ' : ' ) ';
-				$counter++;
-			}
-
-			$conditions .= $gquery;
+			$conditions .= $this->assetGroupQuery($groups);
 		}
 
-		$conditions .= ' AND p.permission = ' . $this->db->quote($permission) . ' ';
+		$conditions .= ' AND p.permission = ' . $this->db->quote($action) . ' ';
 		$query->leftJoin('#__permissions AS p ' . $conditions);
 
 		// Magic
-		$basicwhere = 'p.permission = ' . $this->db->quote($permission) . ' AND p.value=1';
+		$basicwhere = 'p.permission = ' . $this->db->quote($action) . ' AND p.value=1';
 
 		if (isset($orWhere))
 		{
@@ -404,7 +579,7 @@ class JAuthorizeImplementationJoomla extends JAuthorizeImplementation implements
 		$query->where('bs.level = (SELECT max(fs.level) FROM #__assets AS fs
   							LEFT JOIN #__permissions AS pr
  							ON fs.id = pr.assetid 
- 						 	WHERE (ass.lft BETWEEN fs.lft AND fs.rgt) AND pr.permission = ' . $this->db->quote($permission) . ')');
+ 						 	WHERE (ass.lft BETWEEN fs.lft AND fs.rgt) AND pr.permission = ' . $this->db->quote($action) . ')');
 
 		return $query;
 	}
