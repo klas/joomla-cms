@@ -589,7 +589,7 @@ class ContentModelArticles extends JModelList
 
 			$profiler = JProfiler::getInstance('Application');
 			JDEBUG ? $profiler->mark('Start Article multiple access check') : null;
-			$editChecks = JAuthorize::getInstance('Joomlalegacy')->check($userId, $assetsForEditCheck, 'core.edit', 'user');
+			$editChecks = JAuthorize::getInstance()->check($userId, $assetsForEditCheck, 'core.edit', 'user');
 			JDEBUG ? $profiler->mark('Stop Article multiple access check') : null;
 		}
 
@@ -678,7 +678,7 @@ class ContentModelArticles extends JModelList
 				}
 
 				// Now check if edit.own is available.
-				elseif (!empty($userId) && $user->authorise('core.edit.own', $asset))
+				elseif (!empty($userId) && JAuthorize::getInstance()->check($userId, $asset, 'core.edit.own', 'user'))
 				{
 					// Check for a valid user and that they are the owner.
 					if ($userId == $item->created_by)
